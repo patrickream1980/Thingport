@@ -5,6 +5,11 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
+import Button from "@mui/material/Button";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
 import { UnauthorizedError } from "../../api/client";
 import { type Print, type PrintSortMode, printsApi } from "../../api/prints";
 import { type Category, type CategoryMetaInput, categoriesApi } from "../../api/categories";
@@ -12,7 +17,8 @@ import { type CategoriesView, type PreviewMode } from "../../api/settings";
 import type { AuthUser } from "../../api/auth";
 import { type ResolvedTheme } from "../../constants/settingsOptions";
 import { usePageHeader } from "../../components/Layout/PageHeaderContext";
-import { buildCategoryTree, subtreeIds } from "../../utils/categoryTree";
+import { buildCategoryTree, flattenCategoryTree, subtreeIds } from "../../utils/categoryTree";
+import { translateCategoryDisplay } from "../../utils/translateCategoryDisplay";
 import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
 import { useCategoriesView } from "../../hooks/useCategoriesView";
 import CategoriesPanel from "./CategoriesPanel";
@@ -47,7 +53,7 @@ export default function ModelsPage({
   previewMode,
   viewer,
 }: Props) {
-  const { t } = useTranslation(["models", "common"]);
+  const { t, i18n } = useTranslation(["models", "common"]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [items, setItems] = useState<Print[]>([]);
@@ -55,6 +61,9 @@ export default function ModelsPage({
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkCategoryId, setBulkCategoryId] = useState<string>("");
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [categoriesView, setCategoriesView] = useCategoriesView();
   const panelKind = categoriesView === "folders" ? "folder" : "category";
@@ -109,6 +118,19 @@ export default function ModelsPage({
   }, [categoryId, categories]);
 
   const selectedCategory = categoryId ? (categories.find((f) => f.id === categoryId) ?? null) : null;
+  const [flatCategories, flatFolders] = useMemo(
+    () =>
+      (["category", "folder"] as const).map((kind) =>
+        flattenCategoryTree(buildCategoryTree(categories.filter((c) => c.kind === kind))),
+      ),
+    [categories],
+  );
+  const categoryName = (category: Category) => translateCategoryDisplay(category, i18n).name;
+  const visibleIds = useMemo(() => new Set(items.map((item) => item.id)), [items]);
+  const selectedVisibleCount = useMemo(
+    () => Array.from(selectedIds).filter((id) => visibleIds.has(id)).length,
+    [selectedIds, visibleIds],
+  );
   usePageHeader({
     title: selectedCategory ? selectedCategory.name || t("models:categories.untitled") : undefined,
     subtitle: selectedCategory
@@ -254,6 +276,52 @@ export default function ModelsPage({
     }
   };
 
+  const toggleSelected = (id: string, selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (selected) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const selectAllVisible = () => setSelectedIds(new Set(items.map((item) => item.id)));
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const applyBulkCategory = async () => {
+    if (!selectedVisibleCount || bulkUpdating) return;
+    setBulkUpdating(true);
+    const ids = Array.from(selectedIds).filter((id) => visibleIds.has(id));
+    const targetCategoryId = bulkCategoryId || null;
+    try {
+      const updates = await Promise.all(ids.map((id) => printsApi.updateCategory(id, targetCategoryId)));
+      const updatedById = new Map<string, Print>();
+      for (const result of updates) {
+        const updated = result.print as Print | undefined;
+        if (updated) updatedById.set(updated.id, updated);
+      }
+
+      const targetIsInCurrentFilter =
+        categoryIdFilter === undefined ||
+        (targetCategoryId !== null &&
+          (Array.isArray(categoryIdFilter)
+            ? categoryIdFilter.includes(targetCategoryId)
+            : categoryIdFilter === targetCategoryId));
+
+      setItems((prev) =>
+        prev
+          .filter((item) => !ids.includes(item.id) || targetIsInCurrentFilter)
+          .map((item) => updatedById.get(item.id) ?? item),
+      );
+      clearSelection();
+      setBulkCategoryId("");
+    } catch (err) {
+      handleError(err, "Failed to update selected models");
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   return (
     <Stack spacing={2} sx={{ maxWidth: "1920px", mx: "auto" }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
@@ -279,6 +347,69 @@ export default function ModelsPage({
             <Box sx={{ mb: 2 }}>
               <CategoryBanner category={selectedCategory} />
             </Box>
+          )}
+          {selectedVisibleCount > 0 && (
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              alignItems={{ xs: "stretch", sm: "center" }}
+              sx={{ mb: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}
+            >
+              <Typography variant="body2" sx={{ minWidth: 110 }}>
+                {selectedVisibleCount} selected
+              </Typography>
+              <FormControl size="small" sx={{ minWidth: 240 }}>
+                <InputLabel id="bulk-category-label">{t("models:edit.categoryOrFolder")}</InputLabel>
+                <Select
+                  labelId="bulk-category-label"
+                  label={t("models:edit.categoryOrFolder")}
+                  value={bulkCategoryId}
+                  onChange={(e) => setBulkCategoryId(e.target.value)}
+                  disabled={bulkUpdating}
+                >
+                  <MenuItem value="">{t("models:edit.noCategory")}</MenuItem>
+                  {flatCategories.map(({ category, depth }) =>
+                    depth === 0 ? (
+                      <MenuItem key={category.id} disabled divider sx={{ fontWeight: 700, opacity: "1 !important" }}>
+                        {categoryName(category)}
+                      </MenuItem>
+                    ) : (
+                      <MenuItem key={category.id} value={category.id} sx={{ pl: 1 + depth * 2 }}>
+                        {categoryName(category)}
+                      </MenuItem>
+                    ),
+                  )}
+                  {flatFolders.length > 0 && (
+                    <MenuItem disabled divider sx={{ fontWeight: 700, opacity: "1 !important" }}>
+                      {t("models:folders.title")}
+                    </MenuItem>
+                  )}
+                  {flatFolders.map(({ category, depth }) => (
+                    <MenuItem key={category.id} value={category.id} sx={{ pl: 2 + depth * 2 }}>
+                      {categoryName(category) || t("models:categories.untitled")}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Button variant="contained" onClick={applyBulkCategory} disabled={bulkUpdating}>
+                {bulkUpdating ? <CircularProgress size={16} color="inherit" /> : "Assign category"}
+              </Button>
+              <Button onClick={clearSelection} disabled={bulkUpdating}>
+                Clear
+              </Button>
+            </Stack>
+          )}
+          {items.length > 0 && !loading && (
+            <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+              <Button size="small" onClick={selectAllVisible} disabled={selectedVisibleCount === items.length}>
+                Select all loaded
+              </Button>
+              {selectedVisibleCount > 0 && (
+                <Button size="small" onClick={clearSelection}>
+                  Deselect all
+                </Button>
+              )}
+            </Stack>
           )}
           {loading ? (
             <Stack alignItems="center" sx={{ py: 8 }}>
@@ -312,6 +443,9 @@ export default function ModelsPage({
                     onUpdated={(updated) => setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))}
                     onUnauthorized={onUnauthorized}
                     viewer={viewer}
+                    selectionMode
+                    selected={selectedIds.has(item.id)}
+                    onSelectionChange={(selected) => toggleSelected(item.id, selected)}
                   />
                 ))}
               </Box>
