@@ -62,7 +62,7 @@ export default function ModelsPage({
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkCategoryId, setBulkCategoryId] = useState<string>("");
+  const [bulkCategoryId, setBulkCategoryId] = useState<string>("__unset__");
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [categoriesView, setCategoriesView] = useCategoriesView();
@@ -292,6 +292,7 @@ export default function ModelsPage({
     if (!selectedVisibleCount || bulkUpdating) return;
     setBulkUpdating(true);
     const ids = Array.from(selectedIds).filter((id) => visibleIds.has(id));
+    if (bulkCategoryId === "__unset__") return;
     const targetCategoryId = bulkCategoryId || null;
     try {
       const updates = await Promise.all(ids.map((id) => printsApi.updateCategory(id, targetCategoryId)));
@@ -314,7 +315,7 @@ export default function ModelsPage({
           .map((item) => updatedById.get(item.id) ?? item),
       );
       clearSelection();
-      setBulkCategoryId("");
+      setBulkCategoryId("__unset__");
     } catch (err) {
       handleError(err, "Failed to update selected models");
     } finally {
@@ -367,6 +368,9 @@ export default function ModelsPage({
                   onChange={(e) => setBulkCategoryId(e.target.value)}
                   disabled={bulkUpdating}
                 >
+                  <MenuItem value="__unset__" disabled>
+                    Choose a category or folder
+                  </MenuItem>
                   <MenuItem value="">{t("models:edit.noCategory")}</MenuItem>
                   {flatCategories.map(({ category, depth }) =>
                     depth === 0 ? (
@@ -391,7 +395,11 @@ export default function ModelsPage({
                   ))}
                 </Select>
               </FormControl>
-              <Button variant="contained" onClick={applyBulkCategory} disabled={bulkUpdating}>
+              <Button
+                variant="contained"
+                onClick={applyBulkCategory}
+                disabled={bulkUpdating || bulkCategoryId === "__unset__"}
+              >
                 {bulkUpdating ? <CircularProgress size={16} color="inherit" /> : "Assign category"}
               </Button>
               <Button onClick={clearSelection} disabled={bulkUpdating}>
