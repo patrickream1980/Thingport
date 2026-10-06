@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import Paper from "@mui/material/Paper";
+import Checkbox from "@mui/material/Checkbox";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Avatar from "@mui/material/Avatar";
@@ -38,6 +39,10 @@ type Props = {
   onRemovedFromCollection?: (id: string) => void;
   /** Shown as the author of a direct upload, which has none. */
   viewer?: AuthUser | null;
+  /** Enables bulk-selection behavior. */
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelectionChange?: (selected: boolean) => void;
 };
 
 const OVERLAY_BUTTON_SIZE = 30;
@@ -63,6 +68,9 @@ export default function ModelCard({
   collectionId,
   onRemovedFromCollection,
   viewer,
+  selectionMode = false,
+  selected = false,
+  onSelectionChange,
 }: Props) {
   const { t } = useTranslation(["models", "common"]);
   const navigate = useNavigate();
@@ -93,7 +101,13 @@ export default function ModelCard({
   return (
     <Paper
       variant="outlined"
-      onClick={() => navigate(`/models/${item.id}`)}
+      onClick={() => {
+        if (selectionMode && onSelectionChange) {
+          onSelectionChange(!selected);
+          return;
+        }
+        navigate(`/models/${item.id}`);
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       sx={{
@@ -101,7 +115,7 @@ export default function ModelCard({
         cursor: "pointer",
         overflow: "hidden",
         borderRadius: "12px",
-        borderColor: "transparent",
+        borderColor: selected ? "primary.main" : "transparent",
         bgcolor: muiTheme.palette.mode === "dark" ? muiTheme.thingport.pageBackground : muiTheme.palette.grey[100],
         transition: "background-color .15s ease, box-shadow .15s ease, transform .15s ease",
         "&:hover": {
@@ -111,8 +125,26 @@ export default function ModelCard({
           transform: "translateY(-2px)",
         },
         "&:hover .model-card-actions": { opacity: 1 },
+        ...(selected ? { boxShadow: 3 } : undefined),
       }}
     >
+      <Checkbox
+        checked={selected}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => onSelectionChange?.(e.target.checked)}
+        inputProps={{ "aria-label": selected ? "Deselect model" : "Select model" }}
+        sx={{
+          position: "absolute",
+          top: 6,
+          left: 6,
+          zIndex: 3,
+          p: 0.5,
+          bgcolor: "background.paper",
+          borderRadius: "50%",
+          "&:hover": { bgcolor: "background.paper" },
+        }}
+      />
+
       {/* zIndex 0 makes this its own stacking context, so the slideshow's layered slides stay
           under the provider badge and hover actions rendered after it. */}
       <Box sx={{ position: "relative", zIndex: 0, width: "100%", aspectRatio: "4 / 3" }}>
@@ -133,7 +165,7 @@ export default function ModelCard({
           sx={{
             position: "absolute",
             top: 8,
-            left: 8,
+            left: 44,
             px: 1,
             py: 0.375,
             borderRadius: 1,
