@@ -128,22 +128,24 @@ export default function ModelCard({
         ...(selected ? { boxShadow: 3 } : undefined),
       }}
     >
-      <Checkbox
-        checked={selected}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) => onSelectionChange?.(e.target.checked)}
-        inputProps={{ "aria-label": selected ? "Deselect model" : "Select model" }}
-        sx={{
-          position: "absolute",
-          top: 6,
-          left: 6,
-          zIndex: 3,
-          p: 0.5,
-          bgcolor: "background.paper",
-          borderRadius: "50%",
-          "&:hover": { bgcolor: "background.paper" },
-        }}
-      />
+      {selectionMode && (
+        <Checkbox
+          checked={selected}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => onSelectionChange?.(e.target.checked)}
+          inputProps={{ "aria-label": selected ? "Deselect model" : "Select model" }}
+          sx={{
+            position: "absolute",
+            top: 6,
+            left: 6,
+            zIndex: 3,
+            p: 0.5,
+            bgcolor: "background.paper",
+            borderRadius: "50%",
+            "&:hover": { bgcolor: "background.paper" },
+          }}
+        />
+      )}
 
       {/* zIndex 0 makes this its own stacking context, so the slideshow's layered slides stay
           under the provider badge and hover actions rendered after it. */}
@@ -165,7 +167,7 @@ export default function ModelCard({
           sx={{
             position: "absolute",
             top: 8,
-            left: 44,
+            left: selectionMode ? 44 : 8,
             px: 1,
             py: 0.375,
             borderRadius: 1,
