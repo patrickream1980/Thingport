@@ -289,10 +289,9 @@ export default function ModelsPage({
   const clearSelection = () => setSelectedIds(new Set());
 
   const applyBulkCategory = async () => {
-    if (!selectedVisibleCount || bulkUpdating) return;
+    if (!selectedVisibleCount || bulkUpdating || bulkCategoryId === "__unset__") return;
     setBulkUpdating(true);
     const ids = Array.from(selectedIds).filter((id) => visibleIds.has(id));
-    if (bulkCategoryId === "__unset__") return;
     const targetCategoryId = bulkCategoryId || null;
     try {
       const updates = await Promise.all(ids.map((id) => printsApi.updateCategory(id, targetCategoryId)));
