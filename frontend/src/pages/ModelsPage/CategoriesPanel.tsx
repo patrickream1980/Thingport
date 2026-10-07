@@ -168,6 +168,13 @@ export default function CategoriesPanel({
             />
           </ListItemButton>
 
+          <ListItemButton onClick={() => onSelect("__unassigned__")} sx={rowSx(selectedId === "__unassigned__")}>
+            <ListItemText
+              primary="Unassigned"
+              primaryTypographyProps={rowTextSx(selectedId === "__unassigned__", { fontWeight: 600 })}
+            />
+          </ListItemButton>
+
           {loading && (
             <Stack alignItems="center" sx={{ py: 2 }}>
               <CircularProgress size={18} />
