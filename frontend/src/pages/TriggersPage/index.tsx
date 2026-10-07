@@ -20,6 +20,7 @@ import TextField from "@mui/material/TextField";
 import { UnauthorizedError } from "../../api/client";
 import { adminApi, type AdminUser } from "../../api/admin";
 import LinkAuthorsSection from "./LinkAuthorsSection";
+import RefetchDescriptionsSection from "./RefetchDescriptionsSection";
 
 type Props = {
   onUnauthorized?: () => void;
@@ -93,6 +94,7 @@ export default function TriggersPage({ onUnauthorized }: Props) {
   return (
     <Stack spacing={3}>
       <LinkAuthorsSection onUnauthorized={onUnauthorized} />
+      <RefetchDescriptionsSection users={users} onUnauthorized={onUnauthorized} />
       <Paper variant="outlined" sx={{ p: 2.5 }}>
         <Stack spacing={2}>
           <Box>

@@ -254,7 +254,35 @@
       "sectionCollections": "Collections",
       "sectionTags": "Tags",
       "modelCount_one": "{{count}} model",
-      "modelCount_other": "{{count}} models"
+      "modelCount_other": "{{count}} models",
+      "sectionRecent": "Recent",
+      "sectionCommands": "Commands",
+      "open": "Open",
+      "runCommand": "Run command",
+      "toMove": "to move",
+      "kind": {
+        "model": "Model",
+        "collection": "Collection",
+        "tag": "Tag",
+        "command": "Command",
+        "page": "Page"
+      },
+      "commands": {
+        "theme": {
+          "dark": "Theme: Dark",
+          "light": "Theme: Light",
+          "system": "Theme: System"
+        },
+        "import": "Import from a link",
+        "importFrom": "Import from {{provider}}",
+        "importNotSupported": "Not a MakerWorld, Printables or Thingiverse link; opens the import window",
+        "language": "Language: {{name}}"
+      },
+      "searching": "Searching…",
+      "keepTyping": "Keep typing to search models, collections and tags, or type ! for commands.",
+      "noCommand": "No command by that name. Type ! on its own to see them all.",
+      "builtInCollection": "Built-in collection",
+      "sectionPages": "Pages"
     },
     "importProgress": {
       "starting": "Starting import…",
@@ -311,6 +339,13 @@
       "recentlyAdded": {
         "title": "Recently Added",
         "empty": "Nothing added yet — uploaded and imported models will show up here."
+      },
+      "widgets": {
+        "open": "Customize dashboard",
+        "title": "Customize dashboard",
+        "subtitle": "Choose which boxes your dashboard shows.",
+        "close": "Close",
+        "allHidden": "Every dashboard box is hidden."
       }
     },
     "adminSettings": {
@@ -443,9 +478,20 @@
         "linkAuthorsProblems": {
           "thingiverse_no_token": "Thingiverse models were skipped: add a Thingiverse access token in Administration > Settings.",
           "thingiverse_token_rejected": "Thingiverse models were skipped: Thingiverse rejected the access token in Administration > Settings.",
+          "thingiverse_rate_limited": "Thingiverse models were skipped: Thingiverse started blocking requests with a rate limit. It usually clears after a while — try again later.",
           "makerworld_captcha": "MakerWorld models were skipped: MakerWorld asked for a CAPTCHA, and blocks further requests for about 2 hours. Try again later.",
           "makerworld_login_rejected": "MakerWorld models were skipped: MakerWorld rejected the saved MakerWorld login. Update it in Settings > Imports."
-        }
+        },
+        "refetchTitle": "Refetch model descriptions",
+        "refetchDesc": "Replaces the description of every model a user imported from MakerWorld, Printables or Thingiverse with the current one from that site, with its formatting and images. Use it to bring models imported before formatted descriptions were supported up to date. Changes the user made to those descriptions are lost. Models whose source is gone keep their description. It runs in the background — MakerWorld requests are spaced out to avoid its CAPTCHA, so a large library can take a while.",
+        "refetchUserOption": "{{name}} ({{email}}) — {{count}} imported models",
+        "refetchButton": "Refetch descriptions…",
+        "refetchConfirm": "Replace the descriptions of {{count}} imported model(s) belonging to {{email}} with the ones from their source sites? Any changes made to those descriptions will be lost.",
+        "refetchConfirmButton": "Refetch",
+        "refetchFailed": "Failed to start refetching descriptions.",
+        "refetchProgress": "Refetching descriptions for {{email}}: {{done}} of {{total}} — {{updated}} updated so far.",
+        "refetchDone": "Refetched descriptions for {{email}}: {{updated}} of {{total}} changed.",
+        "refetchFailedCount": "{{count}} couldn't be read from their source and were left as they were."
       },
       "thingiverse": {
         "heading": "Thingiverse Access Token",
@@ -610,9 +656,11 @@
           "collection_deleted": "Collection deleted",
           "collection_item_added": "Added to collection",
           "collection_item_removed": "Removed from collection",
-          "authors_linked": "Linked missing authors"
+          "authors_linked": "Linked missing authors",
+          "descriptions_refetched": "Refetched model descriptions"
         },
-        "authorsLinked": "{{count}} model(s) linked"
+        "authorsLinked": "{{count}} model(s) linked",
+        "descriptionsRefetched": "{{email}} — {{updated}} of {{total}} description(s) changed"
       },
       "rendering": {
         "heading": "Rendering",
@@ -1454,7 +1502,28 @@
       "confirmDiscard": "Discard all unsaved changes to this model?",
       "discardConfirmLabel": "Discard",
       "updateSuccess": "Model updated",
-      "updateFailed": "Failed to update the model. Please try again."
+      "updateFailed": "Failed to update the model. Please try again.",
+      "descriptionWrite": "Write",
+      "descriptionPreview": "Preview",
+      "descriptionPlaceholder": "Describe the model, print settings, assembly steps...",
+      "descriptionMarkdownHint": "Formatted with Markdown. Images added by URL are saved with the model.",
+      "toolbar": {
+        "label": "Formatting",
+        "bold": "Bold",
+        "boldText": "bold text",
+        "italic": "Italic",
+        "italicText": "italic text",
+        "heading": "Heading",
+        "bulletList": "Bulleted list",
+        "numberedList": "Numbered list",
+        "quote": "Quote",
+        "code": "Code",
+        "codeText": "code",
+        "link": "Link",
+        "linkText": "link text",
+        "image": "Image from URL",
+        "imageText": "image"
+      }
     },
     "author": {
       "pageTitle": "Author",

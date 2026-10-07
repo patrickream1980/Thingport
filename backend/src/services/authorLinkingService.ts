@@ -16,7 +16,7 @@ import {
 } from "./makerworldCloudApi";
 import { resolvePrintablesModel } from "./printablesApi";
 import { getThingiverseAccessToken } from "./settingsService";
-import { resolveThingiverseThing, ThingiverseAuthError } from "./thingiverseApi";
+import { resolveThingiverseThing, ThingiverseAuthError, ThingiverseRateLimitError } from "./thingiverseApi";
 
 // Links models that only know their author by name: first by name matching, then by looking the
 // rest up on their site once per distinct creator. Only metadata is fetched.
@@ -25,7 +25,11 @@ const LOOKUP_PROVIDERS = ["makerworld", "thingiverse", "printables"] as const;
 type LookupProvider = (typeof LOOKUP_PROVIDERS)[number];
 
 export type LookupProblem =
-  "thingiverse_no_token" | "thingiverse_token_rejected" | "makerworld_captcha" | "makerworld_login_rejected";
+  | "thingiverse_no_token"
+  | "thingiverse_token_rejected"
+  | "thingiverse_rate_limited"
+  | "makerworld_captcha"
+  | "makerworld_login_rejected";
 
 export type AuthorLinkingRun = {
   running: boolean;
@@ -132,6 +136,7 @@ export async function runAuthorLinking(run: AuthorLinkingRun): Promise<void> {
       if (err instanceof MakerworldCaptchaError) skip("makerworld", "makerworld_captcha");
       else if (err instanceof MakerworldAuthError) skip("makerworld", "makerworld_login_rejected");
       else if (err instanceof ThingiverseAuthError) skip("thingiverse", "thingiverse_token_rejected");
+      else if (err instanceof ThingiverseRateLimitError) skip("thingiverse", "thingiverse_rate_limited");
       else console.warn(`Couldn't look up the author of model ${candidate.printId}`, err);
     }
     const saved = author ? await upsertAuthorFromImport(author) : null;

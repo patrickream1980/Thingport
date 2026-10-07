@@ -37,6 +37,7 @@ export const CONSUME_DIR = path.resolve(process.env.CONSUME_DIR || "/app/consume
 export const THUMBS = path.join(STORAGE, "thumbs");
 export const BUNDLES = path.join(STORAGE, "bundles");
 export const PREVIEWS = path.join(STORAGE, "previews");
+export const DESCRIPTION_IMAGES = path.join(STORAGE, "description-images");
 export const MODEL_PREVIEWS = path.join(STORAGE, "model-previews");
 // Slicer-compatible copies of MakerWorld 3MFs, rebuilt when the source plate changes.
 export const NORMALIZED_3MFS = path.join(STORAGE, "normalized-3mf");

@@ -12,6 +12,12 @@ import { modelUpload } from "../uploadMiddleware";
 import { createPrint, deletePlateFiles, resolvePlateFilePath, type NewPlateInput } from "../services/printCreation";
 import { plateThumbPath, relocatePrint, relocatePrintsForToken, uniqueModelName } from "../services/printService";
 import { previewImagePath, deleteAllPreviewImages } from "../services/previewImageService";
+import {
+  deleteAllDescriptionImages,
+  descriptionImagePath,
+  localizeDescriptionImages,
+  pruneDescriptionImages,
+} from "../services/descriptionImageService";
 import { deleteAuthorIfOrphaned, getLinkedAuthorIds } from "../services/authorService";
 import { toPrintOut } from "../dto";
 import { loadFullPrint, printOutById } from "../services/printLoader";
@@ -437,6 +443,22 @@ router.get(
 );
 
 router.get(
+  "/description-image/:id",
+  asyncHandler(async (req, res) => {
+    const image = await prisma.descriptionImage.findFirst({
+      where: { id: req.params.id, print: { userId: req.userId } },
+    });
+    if (!image) throw new HttpError(404, "Not found");
+    const filePath = descriptionImagePath(image.id);
+    if (!fs.existsSync(filePath)) throw new HttpError(404, "Not found");
+    res.setHeader("Content-Type", image.mime);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+    res.sendFile(path.resolve(filePath));
+  }),
+);
+
+router.get(
   "/preview-image/:id/file.jpg",
   asyncHandler(async (req, res) => {
     const image = await prisma.previewImage.findFirst({
@@ -503,6 +525,11 @@ router.post(
     const updated = await prisma.print.update({ where: { id: print.id }, data });
     const plates = await prisma.plate.findMany({ where: { printId: print.id }, orderBy: { position: "asc" } });
     await relocatePrint(updated, plates);
+    if (body.notes !== undefined) {
+      await pruneDescriptionImages(print.id);
+      // Images pasted in by URL are fetched in the background: slow hosts mustn't hold up the save.
+      void localizeDescriptionImages(print.id);
+    }
     res.json({ print: await printOutById(req.userId!, print.id) });
     void createLog({
       userId: req.userId!,
@@ -573,6 +600,7 @@ router.delete(
     const full = await loadFullPrint(req.userId!, req.params.id);
     await deleteAllPrintFiles(req.params.id);
     await deleteAllPreviewImages(req.params.id);
+    await deleteAllDescriptionImages(req.params.id);
     await prisma.print.delete({ where: { id: req.params.id } });
     for (const plate of full.plates) {
       await deletePlateFiles(plate);

@@ -1,0 +1,38 @@
+{
+  "name": "Thingport",
+  "short_name": "Thingport",
+  "description": "Self-hosted 3D model library",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f7f7",
+  "theme_color": "#f7f7f7",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.jpg",
+      "sizes": "1400x790",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Dashboard with your library at a glance"
+    },
+    {
+      "src": "/screenshots/models.jpg",
+      "sizes": "1400x790",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Models from MakerWorld, Printables and Thingiverse in one library"
+    },
+    {
+      "src": "/screenshots/model-3d-preview.jpg",
+      "sizes": "1400x790",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "3D preview of a model"
+    }
+  ]
+}

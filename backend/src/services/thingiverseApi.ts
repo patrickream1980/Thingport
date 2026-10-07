@@ -1,5 +1,6 @@
 import { IMPORT_BROWSER_USER_AGENT, IMPORT_TIMEOUT_SECONDS } from "../config";
 import type { ImportedAuthorInfo, ImportedPageMetadata } from "./importResolvers";
+import { cleanThingiverseMarkdown } from "./descriptionMarkdown";
 import {
   extractJsonFromBrowserBody,
   fetchViaFlaresolverr,
@@ -172,6 +173,14 @@ function extractCreatorAuthor(creator: Record<string, unknown>): {
   return { creator: name, author };
 }
 
+/** The Thing's description, with its separate instructions section (when it has one) appended. */
+function thingiverseDescription(detail: Record<string, unknown>): string | null {
+  const description = typeof detail.description === "string" ? cleanThingiverseMarkdown(detail.description) : null;
+  const instructions = typeof detail.instructions === "string" ? cleanThingiverseMarkdown(detail.instructions) : null;
+  if (!instructions) return description;
+  return [description, `## Instructions\n\n${instructions}`].filter(Boolean).join("\n\n");
+}
+
 /** Null for a Thing that doesn't exist or isn't accessible; throws ThingiverseAuthError for a
  * rejected token. */
 export async function resolveThingiverseThing(
@@ -183,7 +192,8 @@ export async function resolveThingiverseThing(
 
   const meta: Partial<ImportedPageMetadata> = {};
   if (typeof detail.name === "string" && detail.name.trim()) meta.title = detail.name.trim();
-  if (typeof detail.description === "string" && detail.description.trim()) meta.description = detail.description.trim();
+  const description = thingiverseDescription(detail);
+  if (description) meta.description = description;
   if (Array.isArray(detail.tags)) {
     const tags = detail.tags
       .map((t) => (isRecord(t) && typeof t.name === "string" ? t.name.trim() : null))

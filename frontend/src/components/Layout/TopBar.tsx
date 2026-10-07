@@ -8,7 +8,7 @@ import Typography from "@mui/material/Typography";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import type { AuthUser } from "../../api/auth";
 import type { ThemeSelection } from "../../constants/settingsOptions";
-import AddMenu from "./AddMenu";
+import AddMenu, { type AddMenuHandle } from "./AddMenu";
 import NotificationBell from "./NotificationBell";
 import { UserMenu } from "./UserMenu";
 import GlobalSearch from "./GlobalSearch";
@@ -48,6 +48,7 @@ export default function TopBar({
 }: Props) {
   const { t } = useTranslation("app");
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const addMenuRef = useRef<AddMenuHandle | null>(null);
 
   // Publishes the bar's real height (it can wrap) as a CSS var for sticky elements below it.
   useLayoutEffect(() => {
@@ -103,10 +104,17 @@ export default function TopBar({
         {actions}
       </Stack>
       <Box sx={{ minWidth: 0, justifySelf: "center", width: "100%" }}>
-        <GlobalSearch onUnauthorized={onUnauthorized} />
+        <GlobalSearch
+          onUnauthorized={onUnauthorized}
+          theme={theme}
+          onThemeChange={onThemeChange}
+          onLogout={onLogout}
+          onImport={(link) => addMenuRef.current?.importFromCommand(link)}
+        />
       </Box>
       <Stack direction="row" alignItems="center" spacing={1} minWidth={0} justifySelf="end">
         <AddMenu
+          ref={addMenuRef}
           categoryId={categoryId}
           makerworldCookie={makerworldCookie}
           onUploaded={onUploaded}

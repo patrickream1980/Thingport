@@ -19,6 +19,7 @@ const THING_DETAIL = {
   id: Number(THING_ID),
   name: "Test Articulated Widget",
   description: "A **test** widget for import verification.",
+  instructions: "1. Print both parts.<br>2. Snap the wheels on.",
   tags: [{ name: "Widget" }, { name: "Test Fixture" }],
   thumbnail: "https://cdn.thingiverse.com/assets/test/thumb.jpg",
   default_image: { url: "https://cdn.thingiverse.com/assets/test/preview.jpg" },
@@ -139,7 +140,10 @@ describe("importPrintFromUrl -- Thingiverse", () => {
     expect(result.print.creator).toBe("TestCreator");
     expect(result.print.sourceProvider).toBe("thingiverse");
     expect(result.print.sourceExternalId).toBe(THING_ID);
-    expect(result.print.notes).toContain("test");
+    // The separate instructions section is kept, under its own heading, with its HTML mapped onto Markdown.
+    expect(result.print.notes).toBe(
+      "A **test** widget for import verification.\n\n## Instructions\n\n1. Print both parts.\n2. Snap the wheels on.",
+    );
     // Canonical tag casing: only the first character stays uppercase.
     expect(result.print.tags.toSorted()).toEqual(["Test fixture", "Widget"]);
     expect(result.print.categoryId).toBe(category.id);

@@ -34,6 +34,9 @@ model User {
   themePreference          String?
   // Which tree the models page shows: "categories" | "folders"; null means categories.
   categoriesView           String?
+  // The dashboard widgets the user has switched on or off, as { [widgetId]: boolean }. A widget
+  // missing from it shows or hides by its own default, so new widgets need no migration.
+  dashboardWidgets         Json?
   authorPreviewEnabled     Boolean        @default(true)
   // Filled from the first linked Author with this data; later links never overwrite it.
   bio                      String?
@@ -96,42 +99,43 @@ model Category {
 }
 
 model Print {
-  id               String                   @id @default(cuid())
-  userId           String
-  user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name             String
-  nameNormalized   String
-  title            String?
-  notes            String?
-  creator          String?
-  tags             String[]                 @default([])
-  viewCount        Int                      @default(0)
-  printCount       Int                      @default(0)
+  id                String                   @id @default(cuid())
+  userId            String
+  user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  nameNormalized    String
+  title             String?
+  notes             String?
+  creator           String?
+  tags              String[]                 @default([])
+  viewCount         Int                      @default(0)
+  printCount        Int                      @default(0)
   // Back the Favourites and Browsing History pseudo-collections.
-  favoritedAt      DateTime?
-  lastViewedAt     DateTime?
+  favoritedAt       DateTime?
+  lastViewedAt      DateTime?
   // Dedupes re-imports of the same design. Null for uploads and unidentifiable sources.
-  sourceProvider   String?
-  sourceExternalId String?
+  sourceProvider    String?
+  sourceExternalId  String?
   // Gaps (see services/sourceGaps.ts) the source had nothing for at the last fill.
-  unfillableGaps   String[]                 @default([])
-  categoryId       String?
-  category         Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  authorId         String?
-  author           Author?                  @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  sourcePath       String?
-  plates           Plate[]
-  previewImages    PreviewImage[]
-  files            PrintFile[]              @relation("PrintFiles")
-  preparedFileId   String?                  @unique
-  preparedFile     PrintFile?               @relation("PreparedFile", fields: [preparedFileId], references: [id], onDelete: SetNull)
-  preparedMetadata Json?
-  collectionItems  CollectionItem[]
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
+  unfillableGaps    String[]                 @default([])
+  categoryId        String?
+  category          Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  authorId          String?
+  author            Author?                  @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  sourcePath        String?
+  plates            Plate[]
+  previewImages     PreviewImage[]
+  descriptionImages DescriptionImage[]
+  files             PrintFile[]              @relation("PrintFiles")
+  preparedFileId    String?                  @unique
+  preparedFile      PrintFile?               @relation("PreparedFile", fields: [preparedFileId], references: [id], onDelete: SetNull)
+  preparedMetadata  Json?
+  collectionItems   CollectionItem[]
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
   // Generated column (name A, tags B, notes C, creator D) created with its GIN index in a
   // hand-written migration, since Prisma can't express a generated tsvector.
-  searchVector     Unsupported("tsvector")?
+  searchVector      Unsupported("tsvector")?
 
   @@unique([userId, categoryId, nameNormalized])
   @@unique([userId, sourceProvider, sourceExternalId])
@@ -366,6 +370,21 @@ model PreviewImage {
 enum PrintFileRole {
   SUPPORTING
   PREPARED
+}
+
+// Images embedded in a print's Markdown notes, stored locally so the description survives the
+// source changing or going away. Referenced from the notes as /description-image/<id>.
+model DescriptionImage {
+  id        String   @id @default(cuid())
+  printId   String
+  print     Print    @relation(fields: [printId], references: [id], onDelete: Cascade)
+  // Where an imported image came from, so a refresh reuses it instead of downloading again.
+  sourceUrl String?
+  mime      String
+  size      Int
+  createdAt DateTime @default(now())
+
+  @@index([printId])
 }
 
 model PrintFile {

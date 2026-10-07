@@ -13,6 +13,19 @@ export type StorageSettings = {
 
 /** Which tree the models page shows. Kept in sync by hand with the backend's CATEGORIES_VIEWS. */
 export type CategoriesView = "categories" | "folders";
+// Kept in sync by hand with the backend's DASHBOARD_WIDGETS.
+export type DashboardWidgetId =
+  | "collectionCount"
+  | "modelCount"
+  | "authorCount"
+  | "categoryCount"
+  | "topViewed"
+  | "topPrinted"
+  | "recentlyAdded"
+  | "topAuthors"
+  | "topProviders";
+/** Only the widgets the user has switched; the rest follow their default. */
+export type DashboardWidgetChoices = Partial<Record<DashboardWidgetId, boolean>>;
 
 export type PreviewMode = "automatic" | "on-demand" | "disabled";
 
@@ -312,6 +325,24 @@ export const settingsApi = {
     });
     if (res.status === 401) throw new UnauthorizedError();
     if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to update the categories view setting"));
+    return res.json();
+  },
+
+  getDashboardWidgets: async (): Promise<{ widgets: DashboardWidgetChoices }> => {
+    const res = await fetch(`${apiBase()}/settings/dashboard-widgets`, { headers: authHeaders() });
+    assertOk(res, "Failed to load the dashboard widget settings");
+    return res.json();
+  },
+
+  /** Sends only the changed widgets; the server merges them into what's saved. */
+  updateDashboardWidgets: async (widgets: DashboardWidgetChoices): Promise<{ widgets: DashboardWidgetChoices }> => {
+    const res = await fetch(`${apiBase()}/settings/dashboard-widgets`, {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ widgets }),
+    });
+    if (res.status === 401) throw new UnauthorizedError();
+    if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to update the dashboard widget settings"));
     return res.json();
   },
 

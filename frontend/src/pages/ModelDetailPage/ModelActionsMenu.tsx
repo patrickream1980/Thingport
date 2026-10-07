@@ -271,6 +271,14 @@ export default function ModelActionsMenu({
             <ListItemText>{normalizedMenuLabel(slicerOption.label)}</ListItemText>
           </MenuItem>
         )}
+        {providerInfo && print.source_url && (
+          <MenuItem component="a" href={print.source_url} target="_blank" rel="noopener noreferrer" onClick={closeMenu}>
+            <ListItemIcon>
+              <OpenInNewIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{t("models:detail.openInProvider", { provider: providerInfo.label })}</ListItemText>
+          </MenuItem>
+        )}
         {providerInfo && print.source_url && sourceGaps.length > 0 && (
           <MenuItem
             onClick={() => {
@@ -282,14 +290,6 @@ export default function ModelActionsMenu({
               <AutoFixHighIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>{t("models:detail.fillGaps", { provider: providerInfo.label })}</ListItemText>
-          </MenuItem>
-        )}
-        {providerInfo && print.source_url && (
-          <MenuItem component="a" href={print.source_url} target="_blank" rel="noopener noreferrer" onClick={closeMenu}>
-            <ListItemIcon>
-              <OpenInNewIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>{t("models:detail.openInProvider", { provider: providerInfo.label })}</ListItemText>
           </MenuItem>
         )}
       </Menu>

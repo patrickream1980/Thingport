@@ -34,6 +34,7 @@ const ACTION_COLORS: Record<LogAction, ActionColor> = {
   password_reset: "warning",
   user_invited: "info",
   authors_linked: "success",
+  descriptions_refetched: "warning",
   model_uploaded: "info",
   model_imported: "info",
   import_completed: "info",
@@ -111,6 +112,12 @@ export default function LogsPage({ onUnauthorized }: Props) {
         return typeof d.name === "string" ? d.name : "";
       case "user_invited":
         return typeof d.email === "string" ? d.email : "";
+      case "descriptions_refetched":
+        return t("adminSettings.logs.descriptionsRefetched", {
+          email: typeof d.email === "string" ? d.email : "",
+          updated: typeof d.updated === "number" ? d.updated : 0,
+          total: typeof d.total === "number" ? d.total : 0,
+        });
       case "authors_linked":
         return t("adminSettings.logs.authorsLinked", { count: typeof d.linked === "number" ? d.linked : 0 });
       case "model_edited":

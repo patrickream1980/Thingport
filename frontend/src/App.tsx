@@ -277,6 +277,13 @@ export default function App() {
   const [themeSelection, setThemeSelection] = React.useState<ThemeSelection>("light");
   const resolvedTheme = useResolvedTheme(themeSelection);
   const muiTheme = React.useMemo(() => buildTheme(resolvedTheme), [resolvedTheme]);
+  // index.html's theme-color tags follow the OS; this makes the title bar follow the theme
+  // actually shown, which can be a manual light/dark choice.
+  React.useEffect(() => {
+    document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
+      meta.content = muiTheme.palette.background.default;
+    });
+  }, [muiTheme]);
   const isAdmin = user?.role === "ADMIN";
   React.useEffect(() => {
     (async () => setHealth(await healthApi.get()))();

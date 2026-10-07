@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
-import { STORAGE, THUMBS, BUNDLES, PREVIEWS, MODEL_PREVIEWS, NORMALIZED_3MFS } from "./config";
+import { STORAGE, THUMBS, BUNDLES, PREVIEWS, DESCRIPTION_IMAGES, MODEL_PREVIEWS, NORMALIZED_3MFS } from "./config";
 
-for (const dir of [STORAGE, THUMBS, BUNDLES, PREVIEWS, MODEL_PREVIEWS, NORMALIZED_3MFS]) {
+for (const dir of [STORAGE, THUMBS, BUNDLES, PREVIEWS, DESCRIPTION_IMAGES, MODEL_PREVIEWS, NORMALIZED_3MFS]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 // The cache's name before it became NORMALIZED_3MFS; nothing reads it any more.

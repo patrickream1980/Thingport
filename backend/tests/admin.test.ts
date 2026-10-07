@@ -193,7 +193,8 @@ describe("admin audit logs", () => {
   it("filters logs by user", async () => {
     const res = await request(app).get(`/api/admin/logs?user_id=${memberUserId}`).set(auth(adminToken));
     expect(res.status).toBe(200);
-    expect((res.body as Array<{ user_id: string }>).every((l) => l.user_id === memberUserId)).toBe(true);
+    // Lists the offending entries, not just `false`, if this ever fails.
+    expect((res.body as Array<{ user_id: string }>).filter((l) => l.user_id !== memberUserId)).toEqual([]);
   });
 });
 

@@ -24,6 +24,11 @@ import {
 } from "../services/importQueueService";
 import { toAdminImportJobOut, toImportJobItemOut } from "../dto";
 import { authorLinkingSummary, currentAuthorLinkingRun, startAuthorLinking } from "../services/authorLinkingService";
+import {
+  currentDescriptionRefetch,
+  refetchableCounts,
+  startDescriptionRefetch,
+} from "../services/descriptionRefetchService";
 
 // Mounted at /api/admin (app.ts), so these guards only see admin routes.
 const router = Router();
@@ -128,6 +133,27 @@ router.post(
   asyncHandler(async (req, res) => {
     const run = startAuthorLinking(req.userId!);
     if (!run) throw new HttpError(409, "Linking is already running");
+    res.json({ run });
+  }),
+);
+
+router.get(
+  "/triggers/refetch-descriptions",
+  asyncHandler(async (_req, res) => {
+    res.json({ counts: await refetchableCounts(), run: currentDescriptionRefetch() });
+  }),
+);
+
+const refetchSchema = z.object({ user_id: z.string().min(1) });
+// Overwrites the user's descriptions, edits included; the UI handles the confirmation.
+router.post(
+  "/triggers/refetch-descriptions",
+  asyncHandler(async (req, res) => {
+    const body = parseBody(refetchSchema, req.body);
+    const user = await prisma.user.findUnique({ where: { id: body.user_id } });
+    if (!user) throw new HttpError(404, "User not found");
+    const run = startDescriptionRefetch(req.userId!, user);
+    if (!run) throw new HttpError(409, "Descriptions are already being refetched");
     res.json({ run });
   }),
 );

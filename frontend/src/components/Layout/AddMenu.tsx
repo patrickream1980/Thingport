@@ -26,6 +26,7 @@ import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUpload";
 import LinkIcon from "@mui/icons-material/Link";
 import { useUploadImport } from "../uploads/useUploadImport";
 import { useImportJob } from "./ImportJobContext";
+import { useToast } from "../ToastProvider";
 import { IMPORT_PROVIDER_INFO } from "../../constants/importProviders";
 import {
   detectImportProvider,
@@ -41,6 +42,14 @@ import type { MakerworldProfileScope } from "../../api/imports";
 
 const IMPORT_PROVIDERS: ImportProviderKey[] = ["makerworld", "thingiverse", "printables"];
 
+/** What the search palette's !import command calls. */
+export type AddMenuHandle = {
+  /** No link opens the import dialog. A supported link imports straight away, unless something
+   *  needs the dialog first (a captcha, a blocked or invalid link, several links), when it opens
+   *  filled in with it. */
+  importFromCommand: (link?: string) => void;
+};
+
 type Props = {
   categoryId?: string | null;
   makerworldCookie?: string | null;
@@ -50,8 +59,12 @@ type Props = {
 
 /** The top bar's "+ Add" button. MakerWorld collection links are blocked here; they can only be
  *  imported via the browser extension. */
-export default function AddMenu({ categoryId, makerworldCookie, onUploaded, onUnauthorized }: Props) {
+const AddMenu = React.forwardRef<AddMenuHandle, Props>(function AddMenu(
+  { categoryId, makerworldCookie, onUploaded, onUnauthorized },
+  ref,
+) {
   const { t } = useTranslation(["app", "common"]);
+  const showToast = useToast();
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const [importOpen, setImportOpen] = React.useState(false);
   const [linkValue, setLinkValue] = React.useState("");
@@ -105,13 +118,28 @@ export default function AddMenu({ categoryId, makerworldCookie, onUploaded, onUn
     upload.triggerFolderUpload();
   };
 
-  const openImport = () => {
+  const openImport = (prefill = "") => {
     closeMenu();
-    setLinkValue("");
+    setLinkValue(prefill);
     setExampleProvider(null);
     setProfileScope("url");
     setImportOpen(true);
   };
+
+  React.useImperativeHandle(ref, () => ({
+    importFromCommand: (link) => {
+      // The same rule as the Add button, which is disabled meanwhile.
+      if (upload.isBusy || isImporting) {
+        showToast({ message: t("addMenu.disabledWhileImporting"), severity: "info" });
+        return;
+      }
+      const url = link?.trim() ?? "";
+      const direct =
+        url && !/\s/.test(url) && detectImportProvider(url) && !isMakerworldCollectionUrl(url) && !needsCaptcha;
+      if (direct) void upload.submitImport(url);
+      else openImport(url);
+    },
+  }));
 
   const closeImport = () => {
     if (upload.importing) return;
@@ -161,7 +189,7 @@ export default function AddMenu({ categoryId, makerworldCookie, onUploaded, onUn
           </ListItemIcon>
           <ListItemText>{t("addMenu.uploadFolder")}</ListItemText>
         </MenuItem>
-        <MenuItem onClick={openImport}>
+        <MenuItem onClick={() => openImport()}>
           <ListItemIcon>
             <LinkIcon fontSize="small" />
           </ListItemIcon>
@@ -281,4 +309,6 @@ export default function AddMenu({ categoryId, makerworldCookie, onUploaded, onUn
       {upload.modals}
     </>
   );
-}
+});
+
+export default AddMenu;

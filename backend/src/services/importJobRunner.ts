@@ -6,7 +6,7 @@ import { countJobItems, getJob, getJobStatus, listJobItems, updateJob, updateJob
 import { createNotification } from "./notificationService";
 import { addPrintsToCollection, findOrCreateCollectionByName } from "./collectionService";
 import { resolveMakerworldCookie } from "./importResolvers";
-import { decodeHtmlEntities } from "./importResolvers";
+import { decodeHtmlEntities } from "../utils/htmlEntities";
 import {
   extractMakerworldBearerToken,
   parseMakerworldModelUrl,

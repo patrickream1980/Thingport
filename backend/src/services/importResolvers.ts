@@ -10,6 +10,8 @@ import {
   IMPORT_USER_AGENT,
 } from "../config";
 import { isJsonContentType } from "../utils/fileUtils";
+import { htmlToMarkdown } from "./descriptionMarkdown";
+import { decodeHtmlEntities } from "../utils/htmlEntities";
 import {
   isCaptchaChallenge,
   isDownloadLimitReply,
@@ -425,7 +427,7 @@ export function makerworldMetaFromDesign(design: unknown): ImportedPageMetadata 
         .map((tag) => tag.trim())
     : [];
   meta.description =
-    typeof design.summary === "string" && design.summary.trim() ? htmlToPlainText(design.summary) : null;
+    typeof design.summary === "string" && design.summary.trim() ? htmlToMarkdown(design.summary) : null;
   const designCreator = isRecord(design.designCreator) ? design.designCreator : null;
   meta.creator = designCreator ? pickDesignString(designCreator, ["nickName", "name", "handle"]) : null;
   meta.author = makerworldAuthorFromDesignCreator(designCreator);
@@ -460,29 +462,6 @@ export function makerworldAuthorFromDesignCreator(creator: unknown): ImportedAut
     avatarUrl: pick(["avatar", "avatarUrl", "headIcon"]),
     backgroundUrl: null,
   };
-}
-
-export function decodeHtmlEntities(value: string): string {
-  return value
-    .replace(/&nbsp;/g, " ")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, "&");
-}
-
-export function htmlToPlainText(html: string): string | null {
-  const withBreaks = html.replace(/<\s*(br|\/p|\/li|\/div|\/h[1-6])\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
-  const text = decodeHtmlEntities(withBreaks)
-    .replace(/\u00A0/g, " ")
-    .replace(/[ \t]+/g, " ")
-    .split("\n")
-    .map((line) => line.trim())
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-  return text || null;
 }
 
 function genericTitleFromHtml(html: string): string | null {

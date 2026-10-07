@@ -9,6 +9,7 @@ import { IMPORT_MAX_BYTES } from "../config";
 import { listZipEntries as listRawZipEntries, readZipEntry } from "../utils/zipReader";
 import { validateParentCategory } from "./categoryService";
 import { attachImportedPreviewImages } from "./importService";
+import { localizeDescriptionImages } from "./descriptionImageService";
 import { createPrint, type PrintMetaInput } from "./printCreation";
 import type { Print, Plate, PreviewImage } from "@prisma/client";
 
@@ -177,6 +178,7 @@ export async function extractZipEntriesToPrints(
       ]);
       tempPath = null;
       await attachImportedPreviewImages(print.id, plates[0]?.id, options.previewImageUrl, options.galleryImages ?? []);
+      await localizeDescriptionImages(print.id);
       const previewImages = await prisma.previewImage.findMany({
         where: { printId: print.id },
         orderBy: { position: "asc" },

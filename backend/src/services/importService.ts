@@ -20,6 +20,7 @@ import {
   sanitizeFilename,
 } from "../utils/fileUtils";
 import { validateRemoteUrl } from "../utils/urlUtils";
+import { readCapped } from "../utils/readCapped";
 import { maybeSleep, sleep } from "../utils/concurrency";
 import { fetchViaFlaresolverr, isFlaresolverrEnabled, looksLikeCloudflareBlock, shouldProxyHost } from "./flaresolverr";
 import {
@@ -72,6 +73,7 @@ import {
 } from "./printCreation";
 import { plateThumbReplaceable, saveThumbFromBytes } from "./printService";
 import { addPreviewImage, removeGeneratedPreviewImages } from "./previewImageService";
+import { localizeDescriptionImages } from "./descriptionImageService";
 import { prisma } from "../db";
 import { Prisma } from "@prisma/client";
 import type { Author, Plate, PreviewImage, Print } from "@prisma/client";
@@ -103,29 +105,6 @@ function parseCharset(contentType: string | null): string {
   if (!contentType) return "utf-8";
   const match = contentType.match(/charset=([^;]+)/i);
   return match ? match[1].trim().replace(/["']/g, "") : "utf-8";
-}
-
-async function readCapped(response: Response, maxBytes: number): Promise<{ buffer: Buffer; truncated: boolean }> {
-  if (!response.body) return { buffer: Buffer.alloc(0), truncated: false };
-  const reader = response.body.getReader();
-  const chunks: Buffer[] = [];
-  let total = 0;
-  let truncated = false;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = Buffer.from(value);
-    total += chunk.length;
-    if (total > maxBytes) {
-      const allowed = chunk.length - (total - maxBytes);
-      if (allowed > 0) chunks.push(chunk.subarray(0, allowed));
-      truncated = true;
-      await reader.cancel().catch(() => undefined);
-      break;
-    }
-    chunks.push(chunk);
-  }
-  return { buffer: Buffer.concat(chunks), truncated };
 }
 
 async function rawFetch(url: string, headers: Record<string, string>): Promise<Response> {
@@ -852,6 +831,7 @@ async function importThingiverseThing(
     }
     const gallery = galleryImages.map((img) => ({ url: img.url, filename: img.name }));
     await attachImportedPreviewImages(result.print.id, result.plates[0]?.id, meta.previewImageUrl ?? null, gallery);
+    await localizeDescriptionImages(result.print.id);
     const previewImages = await prisma.previewImage.findMany({
       where: { printId: result.print.id },
       orderBy: { position: "asc" },
@@ -938,6 +918,7 @@ async function importPrintablesModel(
     }
     const gallery = galleryImages.map((img) => ({ url: img.url, filename: img.name }));
     await attachImportedPreviewImages(result.print.id, result.plates[0]?.id, meta.previewImageUrl ?? null, gallery);
+    await localizeDescriptionImages(result.print.id);
     const previewImages = await prisma.previewImage.findMany({
       where: { printId: result.print.id },
       orderBy: { position: "asc" },
@@ -1017,6 +998,7 @@ export async function importPrintFromUrl(
       meta.galleryImages,
       body.makerworldPaceMs,
     );
+    await localizeDescriptionImages(result.print.id);
     const previewImages = await prisma.previewImage.findMany({
       where: { printId: result.print.id },
       orderBy: { position: "asc" },

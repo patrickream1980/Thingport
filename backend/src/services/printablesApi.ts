@@ -1,6 +1,7 @@
 import { IMPORT_BROWSER_USER_AGENT, IMPORT_HTML_MAX_BYTES, IMPORT_TIMEOUT_SECONDS } from "../config";
 import { HttpError } from "../utils/fileUtils";
-import { htmlToPlainText, type ImportedAuthorInfo, type ImportedPageMetadata } from "./importResolvers";
+import { type ImportedAuthorInfo, type ImportedPageMetadata } from "./importResolvers";
+import { htmlToMarkdown } from "./descriptionMarkdown";
 
 // Unlike Cloudflare-gated www.printables.com, the GraphQL API answers unauthenticated requests.
 const PRINTABLES_GRAPHQL_URL = "https://api.printables.com/graphql/";
@@ -143,8 +144,8 @@ export async function resolvePrintablesModel(modelId: string): Promise<Printable
   const meta: Partial<ImportedPageMetadata> = {};
   if (typeof model.name === "string" && model.name.trim()) meta.title = model.name.trim();
   if (typeof model.description === "string" && model.description.trim()) {
-    const plainText = htmlToPlainText(model.description);
-    if (plainText) meta.description = plainText;
+    const markdown = htmlToMarkdown(model.description);
+    if (markdown) meta.description = markdown;
   }
   if (Array.isArray(model.tags)) {
     const tags = model.tags

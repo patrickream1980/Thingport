@@ -8,6 +8,7 @@ export type LogAction =
   | "password_reset"
   | "user_invited"
   | "authors_linked"
+  | "descriptions_refetched"
   | "model_uploaded"
   | "model_imported"
   | "import_completed"

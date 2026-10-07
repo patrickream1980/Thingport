@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { deleteAllPrintFiles } from "./printFileService";
 import { deleteAllPreviewImages } from "./previewImageService";
+import { deleteAllDescriptionImages } from "./descriptionImageService";
 import { deletePlateFiles } from "./printCreation";
 import { plateThumbPath } from "./printService";
 import { loadFullPrint } from "./printLoader";
@@ -89,6 +90,7 @@ export async function deleteAllPrintsForUser(userId: string): Promise<number> {
     const full = await loadFullPrint(userId, id);
     await deleteAllPrintFiles(id);
     await deleteAllPreviewImages(id);
+    await deleteAllDescriptionImages(id);
     await prisma.print.delete({ where: { id } });
     for (const plate of full.plates) {
       await deletePlateFiles(plate);

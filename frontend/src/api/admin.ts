@@ -20,6 +20,7 @@ export type LogAction =
   | "password_reset"
   | "user_invited"
   | "authors_linked"
+  | "descriptions_refetched"
   | "model_uploaded"
   | "model_imported"
   | "import_completed"
@@ -49,7 +50,11 @@ export type StorageUsage = {
 };
 
 export type AuthorLookupProblem =
-  "thingiverse_no_token" | "thingiverse_token_rejected" | "makerworld_captcha" | "makerworld_login_rejected";
+  | "thingiverse_no_token"
+  | "thingiverse_token_rejected"
+  | "thingiverse_rate_limited"
+  | "makerworld_captcha"
+  | "makerworld_login_rejected";
 
 export type AuthorLinkingRun = {
   running: boolean;
@@ -61,6 +66,21 @@ export type AuthorLinkingRun = {
   notFound: number;
   problems: AuthorLookupProblem[];
 };
+
+export type DescriptionRefetchRun = {
+  running: boolean;
+  userId: string;
+  startedAt: string;
+  finishedAt: string | null;
+  total: number;
+  done: number;
+  updated: number;
+  failed: number;
+  problems: AuthorLookupProblem[];
+};
+
+/** `counts`: per user id, how many models have a source to refetch from. */
+export type DescriptionRefetchStatus = { counts: Record<string, number>; run: DescriptionRefetchRun | null };
 
 export type AuthorLinkingStatus = { linkable: number; lookup: number; run: AuthorLinkingRun | null };
 
@@ -123,6 +143,24 @@ export const adminApi = {
     const res = await fetch(`${apiBase()}/admin/triggers/link-authors`, { method: "POST", headers: authHeaders() });
     if (res.status === 401) throw new UnauthorizedError();
     if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to start linking authors"));
+    return res.json();
+  },
+
+  getDescriptionRefetch: async (): Promise<DescriptionRefetchStatus> => {
+    const res = await fetch(`${apiBase()}/admin/triggers/refetch-descriptions`, { headers: authHeaders() });
+    if (res.status === 401) throw new UnauthorizedError();
+    if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to load description refetching"));
+    return res.json();
+  },
+
+  startDescriptionRefetch: async (userId: string): Promise<{ run: DescriptionRefetchRun }> => {
+    const res = await fetch(`${apiBase()}/admin/triggers/refetch-descriptions`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ user_id: userId }),
+    });
+    if (res.status === 401) throw new UnauthorizedError();
+    if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to start refetching descriptions"));
     return res.json();
   },
 

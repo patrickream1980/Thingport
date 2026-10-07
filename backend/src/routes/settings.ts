@@ -35,6 +35,7 @@ import { type MakerworldCookieCheck, verifyMakerworldCookie } from "../services/
 import { verifyThingiverseAccessToken } from "../services/thingiverseApi";
 import { SLICER_IDS, getUserSlicer, setUserSlicer } from "../services/slicerPreferenceService";
 import { CATEGORIES_VIEWS, getCategoriesView, setCategoriesView } from "../services/categoriesViewService";
+import { DASHBOARD_WIDGETS, getDashboardWidgets, setDashboardWidgets } from "../services/dashboardWidgetsService";
 import {
   CONSUME_MODES,
   NOT_IMPORTED_DIR,
@@ -423,6 +424,23 @@ router.patch(
   asyncHandler(async (req, res) => {
     const body = parseBody(categoriesViewSchema, req.body);
     res.json({ view: await setCategoriesView(req.userId!, body.view) });
+  }),
+);
+
+router.get(
+  "/settings/dashboard-widgets",
+  asyncHandler(async (req, res) => {
+    res.json({ widgets: await getDashboardWidgets(req.userId!) });
+  }),
+);
+
+// Only the widgets being changed; the rest keep what's saved.
+const dashboardWidgetsSchema = z.object({ widgets: z.record(z.enum(DASHBOARD_WIDGETS), z.boolean()) });
+router.patch(
+  "/settings/dashboard-widgets",
+  asyncHandler(async (req, res) => {
+    const body = parseBody(dashboardWidgetsSchema, req.body);
+    res.json({ widgets: await setDashboardWidgets(req.userId!, body.widgets) });
   }),
 );
 

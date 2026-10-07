@@ -28,6 +28,7 @@ import Model3DPreviewModal from "./Model3DPreviewModal";
 import ModelActionsMenu from "./ModelActionsMenu";
 import FavoriteButton from "./FavoriteButton";
 import ModelSidePanel from "./ModelSidePanel";
+import MarkdownDescription from "../../components/MarkdownDescription";
 
 type Props = {
   theme: ResolvedTheme;
@@ -297,12 +298,13 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
             >
               {t("models:detail.description")}
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{ whiteSpace: "pre-wrap", color: print.notes ? "text.primary" : "text.disabled" }}
-            >
-              {print.notes || t("models:detail.noDescription")}
-            </Typography>
+            {print.notes?.trim() ? (
+              <MarkdownDescription markdown={print.notes} />
+            ) : (
+              <Typography variant="body2" color="text.disabled">
+                {t("models:detail.noDescription")}
+              </Typography>
+            )}
 
             <Typography
               variant="subtitle1"

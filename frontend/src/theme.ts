@@ -114,6 +114,12 @@ const THEME_DEFS: Record<ResolvedTheme, ThemeDef> = {
   },
 };
 
+/** The veil behind modals and the open search. */
+export function veilColor(mode: "light" | "dark"): string {
+  return mode === "dark" ? "rgba(0, 0, 0, 0.5)" : "rgba(255, 255, 255, 0.6)";
+}
+export const VEIL_BLUR = "blur(1.5px)";
+
 export function buildTheme(id: ResolvedTheme): Theme {
   const d = THEME_DEFS[id];
   const options: ThemeOptions = {
@@ -140,6 +146,13 @@ export function buildTheme(id: ResolvedTheme): Theme {
       MuiPaper: { styleOverrides: { root: { backgroundImage: "none", backgroundColor: d.panel } } },
       MuiAppBar: { styleOverrides: { root: { backgroundColor: d.panelStrong, color: d.text } } },
       MuiDrawer: { styleOverrides: { paper: { backgroundColor: d.panelStrong, borderColor: d.border } } },
+      // Menus and popovers have an invisible backdrop, which stays so.
+      MuiBackdrop: {
+        styleOverrides: {
+          root: ({ ownerState }) =>
+            ownerState.invisible ? {} : { backgroundColor: veilColor(d.mode), backdropFilter: VEIL_BLUR },
+        },
+      },
       MuiButton: { styleOverrides: { root: { borderRadius: 8 } } },
       MuiChip: { styleOverrides: { root: { borderRadius: 6 } } },
       MuiTooltip: { styleOverrides: { tooltip: { backgroundColor: d.panelStrong, color: d.text } } },

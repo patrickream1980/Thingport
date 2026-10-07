@@ -35,6 +35,7 @@ import { UnauthorizedError } from "../../api/client";
 import { useConfirm } from "../../components/ConfirmProvider";
 import { useToast } from "../../components/ToastProvider";
 import TagInput from "../../components/TagInput";
+import DescriptionEditor from "./DescriptionEditor";
 import { translateCategoryDisplay } from "../../utils/translateCategoryDisplay";
 import { buildCategoryTree, flattenCategoryTree } from "../../utils/categoryTree";
 
@@ -487,17 +488,13 @@ export default function EditModelModal({ print, onClose, onUnauthorized, onUpdat
             </Stack>
           </Box>
 
-          <TextField
-            label={t("models:detail.description")}
+          <DescriptionEditor
             value={notes}
-            onChange={(e) => {
-              setNotes(e.target.value);
+            onChange={(next) => {
+              setNotes(next);
               markDirty();
             }}
             disabled={saving}
-            fullWidth
-            multiline
-            minRows={3}
           />
 
           <Box>

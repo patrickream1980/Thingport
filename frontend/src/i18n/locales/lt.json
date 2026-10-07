@@ -254,7 +254,35 @@
       "sectionCollections": "Kolekcijos",
       "sectionTags": "Žymos",
       "modelCount_one": "{{count}} modelis",
-      "modelCount_other": "{{count}} modeliai"
+      "modelCount_other": "{{count}} modeliai",
+      "sectionRecent": "Neseniai",
+      "sectionCommands": "Komandos",
+      "open": "Atidaryti",
+      "runCommand": "Vykdyti komandą",
+      "toMove": "judėti",
+      "kind": {
+        "model": "Modelis",
+        "collection": "Kolekcija",
+        "tag": "Žyma",
+        "command": "Komanda",
+        "page": "Puslapis"
+      },
+      "commands": {
+        "theme": {
+          "dark": "Tema: tamsi",
+          "light": "Tema: šviesi",
+          "system": "Tema: pagal sistemą"
+        },
+        "import": "Importuoti iš nuorodos",
+        "importFrom": "Importuoti iš {{provider}}",
+        "importNotSupported": "Ne MakerWorld, Printables ar Thingiverse nuoroda; atidaromas importavimo langas",
+        "language": "Kalba: {{name}}"
+      },
+      "searching": "Ieškoma…",
+      "keepTyping": "Rašykite toliau, kad ieškotumėte modelių, kolekcijų ir žymų, arba įveskite ! komandoms.",
+      "noCommand": "Tokios komandos nėra. Įveskite tik !, kad pamatytumėte visas.",
+      "builtInCollection": "Įtaisyta kolekcija",
+      "sectionPages": "Puslapiai"
     },
     "importProgress": {
       "starting": "Pradedamas importas…",
@@ -311,6 +339,13 @@
       "recentlyAdded": {
         "title": "Naujausiai pridėti",
         "empty": "Dar nieko nepridėta — įkelti ir importuoti modeliai atsiras čia."
+      },
+      "widgets": {
+        "open": "Tvarkyti valdymo skydą",
+        "title": "Tvarkyti valdymo skydą",
+        "subtitle": "Pasirinkite, kuriuos langelius rodo jūsų valdymo skydas.",
+        "close": "Uždaryti",
+        "allHidden": "Visi valdymo skydo langeliai paslėpti."
       }
     },
     "adminSettings": {
@@ -445,9 +480,20 @@
         "linkAuthorsProblems": {
           "thingiverse_no_token": "Thingiverse modeliai praleisti: pridėkite Thingiverse prieigos raktą skiltyje Administravimas > Nustatymai.",
           "thingiverse_token_rejected": "Thingiverse modeliai praleisti: Thingiverse atmetė prieigos raktą, nurodytą skiltyje Administravimas > Nustatymai.",
+          "thingiverse_rate_limited": "Thingiverse modeliai praleisti: Thingiverse pradėjo riboti užklausas. Paprastai tai praeina po kurio laiko — bandykite vėliau.",
           "makerworld_captcha": "MakerWorld modeliai praleisti: MakerWorld paprašė CAPTCHA ir maždaug 2 valandoms blokuoja tolesnes užklausas. Bandykite vėliau.",
           "makerworld_login_rejected": "MakerWorld modeliai praleisti: MakerWorld atmetė išsaugotą MakerWorld prisijungimą. Atnaujinkite jį skiltyje Nustatymai > Importavimas."
-        }
+        },
+        "refetchTitle": "Iš naujo gauti modelių aprašymus",
+        "refetchDesc": "Pakeičia kiekvieno naudotojo iš MakerWorld, Printables ar Thingiverse importuoto modelio aprašymą dabartiniu aprašymu iš tos svetainės, su formatavimu ir paveikslėliais. Naudokite tai modeliams, importuotiems prieš atsirandant formatuotų aprašymų palaikymui, atnaujinti. Naudotojo atlikti tų aprašymų pakeitimai bus prarasti. Modeliai, kurių šaltinio nebėra, išlaiko savo aprašymą. Vykdoma fone — MakerWorld užklausos atliekamos su pertraukomis, kad būtų išvengta CAPTCHA, todėl didelė biblioteka gali užtrukti.",
+        "refetchUserOption": "{{name}} ({{email}}) — importuotų modelių: {{count}}",
+        "refetchButton": "Gauti aprašymus iš naujo…",
+        "refetchConfirm": "Pakeisti {{email}} priklausančių importuotų modelių ({{count}}) aprašymus aprašymais iš jų šaltinių? Visi tų aprašymų pakeitimai bus prarasti.",
+        "refetchConfirmButton": "Gauti iš naujo",
+        "refetchFailed": "Nepavyko pradėti gauti aprašymų iš naujo.",
+        "refetchProgress": "Gaunami {{email}} aprašymai: {{done}} iš {{total}} — atnaujinta: {{updated}}.",
+        "refetchDone": "{{email}} aprašymai gauti iš naujo: pakeista {{updated}} iš {{total}}.",
+        "refetchFailedCount": "Nepavyko nuskaityti iš šaltinio: {{count}}; jie palikti nepakeisti."
       },
       "thingiverse": {
         "heading": "Thingiverse prieigos raktas",
@@ -612,9 +658,11 @@
           "collection_deleted": "Kolekcija ištrinta",
           "collection_item_added": "Pridėta į kolekciją",
           "collection_item_removed": "Pašalinta iš kolekcijos",
-          "authors_linked": "Susieti trūkstami autoriai"
+          "authors_linked": "Susieti trūkstami autoriai",
+          "descriptions_refetched": "Iš naujo gauti modelių aprašymai"
         },
-        "authorsLinked": "Susieta modelių: {{count}}"
+        "authorsLinked": "Susieta modelių: {{count}}",
+        "descriptionsRefetched": "{{email}} — pakeista aprašymų: {{updated}} iš {{total}}"
       },
       "rendering": {
         "heading": "Atvaizdavimas",
@@ -1457,7 +1505,28 @@
       "confirmDiscard": "Atmesti visus neišsaugotus šio modelio pakeitimus?",
       "discardConfirmLabel": "Atmesti",
       "updateSuccess": "Modelis atnaujintas",
-      "updateFailed": "Nepavyko atnaujinti modelio. Bandykite dar kartą."
+      "updateFailed": "Nepavyko atnaujinti modelio. Bandykite dar kartą.",
+      "descriptionWrite": "Rašyti",
+      "descriptionPreview": "Peržiūra",
+      "descriptionPlaceholder": "Aprašykite modelį, spausdinimo nustatymus, surinkimo žingsnius...",
+      "descriptionMarkdownHint": "Formatuojama Markdown. Pagal URL pridėti paveikslėliai išsaugomi kartu su modeliu.",
+      "toolbar": {
+        "label": "Formatavimas",
+        "bold": "Paryškinti",
+        "boldText": "paryškintas tekstas",
+        "italic": "Kursyvas",
+        "italicText": "kursyvinis tekstas",
+        "heading": "Antraštė",
+        "bulletList": "Sąrašas",
+        "numberedList": "Numeruotas sąrašas",
+        "quote": "Citata",
+        "code": "Kodas",
+        "codeText": "kodas",
+        "link": "Nuoroda",
+        "linkText": "nuorodos tekstas",
+        "image": "Paveikslėlis iš URL",
+        "imageText": "paveikslėlis"
+      }
     },
     "author": {
       "pageTitle": "Autorius",

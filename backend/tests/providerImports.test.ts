@@ -291,7 +291,7 @@ describe("importing from Printables", () => {
     expect(res.status).toBe(200);
     await expectFullyImported(res.body.id, {
       title: "Sturdy Wall Hook",
-      descriptionIncludes: "Holds up to 5 kg",
+      descriptionIncludes: "Holds up to **5 kg**",
       tags: ["Hook", "Wall"],
       author: {
         id: "printables:31337",
@@ -353,7 +353,7 @@ describe("importing from MakerWorld", () => {
 
   const expected = (overrides: Partial<Expected> = {}): Expected => ({
     title: "Classic Benchy",
-    descriptionIncludes: "classic calibration boat",
+    descriptionIncludes: "The **classic** calibration boat.",
     tags: ["Benchy", "Calibration"],
     author: { id: `makerworld:${creator.uid}`, name: creator.name, avatarUrl: creator.avatar },
     previewImages: 2,
