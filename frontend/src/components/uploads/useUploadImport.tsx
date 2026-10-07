@@ -29,6 +29,8 @@ import {
   isThingiverseThingUrl,
 } from "../../utils/importLinkDetection";
 
+const UNASSIGNED_CATEGORY_ID = "__unassigned__";
+
 // A folder pick always prefixes relativePath with the folder name.
 function isFlatFileSet(entries: { file: File; relativePath: string }[]) {
   return entries.length > 1 && entries.every((entry) => entry.relativePath === entry.file.name);
@@ -62,6 +64,9 @@ export function useUploadImport({ onUploaded, categoryId, makerworldCookie, onUn
     startLinksImport,
   } = useImportJob();
   const isBusy = uploading || importing || zipPrompt.isOpen || collectionPrompt.isOpen || importModePrompt.isOpen;
+  // "__unassigned__" is a virtual Models-page filter, not a real category ID.
+  // Uploading/importing from that view should behave exactly like uploading with no category selected.
+  const effectiveCategoryId = categoryId === UNASSIGNED_CATEGORY_ID ? null : categoryId;
 
   // A plain upload has no metadata yet, so open it straight in edit mode.
   const openForEditing = (print: Print) => {
@@ -74,7 +79,7 @@ export function useUploadImport({ onUploaded, categoryId, makerworldCookie, onUn
 
   const uploadFlatAsMultiplate = async (files: File[]) => {
     try {
-      const result = await printsApi.upload(files, { category_id: categoryId || undefined, mode: "multiplate" });
+      const result = await printsApi.upload(files, { category_id: effectiveCategoryId || undefined, mode: "multiplate" });
       return { uploaded: result.prints.length, failed: [] as string[], prints: result.prints };
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -116,7 +121,7 @@ export function useUploadImport({ onUploaded, categoryId, makerworldCookie, onUn
             if (mode === "multiplate") {
               applyResult(await uploadFlatAsMultiplate(normalEntries.map((entry) => entry.file)));
             } else {
-              applyResult(await uploadEntriesToCategory(normalEntries, categoryId || null, onUnauthorized));
+              applyResult(await uploadEntriesToCategory(normalEntries, effectiveCategoryId || null, onUnauthorized));
             }
           },
         });
@@ -129,11 +134,11 @@ export function useUploadImport({ onUploaded, categoryId, makerworldCookie, onUn
           variant: "folders",
           onChoose: async (mode: ImportMode) => {
             const upload = mode === "multiplate" ? uploadFoldersAsModels : uploadEntriesToCategory;
-            applyResult(await upload(normalEntries, categoryId || null, onUnauthorized));
+            applyResult(await upload(normalEntries, effectiveCategoryId || null, onUnauthorized));
           },
         });
       } else {
-        const result = await uploadEntriesToCategory(normalEntries, categoryId || null, onUnauthorized);
+        const result = await uploadEntriesToCategory(normalEntries, effectiveCategoryId || null, onUnauthorized);
         applyResult(result);
       }
     }
@@ -145,7 +150,7 @@ export function useUploadImport({ onUploaded, categoryId, makerworldCookie, onUn
       await zipPrompt.prompt({
         label: entry.file.name,
         onImportAsZip: async () => {
-          const result = await uploadEntriesToCategory([entry], categoryId || null, onUnauthorized);
+          const result = await uploadEntriesToCategory([entry], effectiveCategoryId || null, onUnauthorized);
           applyResult(result);
         },
         loadEntries: async () => {
@@ -159,7 +164,7 @@ export function useUploadImport({ onUploaded, categoryId, makerworldCookie, onUn
             zipData = result.data;
           }
           const unzipEntries = buildUploadEntriesFromZip(zipData || {}, selectedPaths, basePath);
-          const result = await uploadEntriesToCategory(unzipEntries, categoryId || null, onUnauthorized);
+          const result = await uploadEntriesToCategory(unzipEntries, effectiveCategoryId || null, onUnauthorized);
           applyResult(result);
         },
       });
@@ -243,7 +248,7 @@ export function useUploadImport({ onUploaded, categoryId, makerworldCookie, onUn
       const cookie = (makerworldCookie || "").trim();
       const payload = {
         url,
-        category_id: categoryId || undefined,
+        category_id: effectiveCategoryId || undefined,
         makerworld_cookie: cookie || undefined,
         ...captcha,
       };
@@ -422,7 +427,7 @@ export function useUploadImport({ onUploaded, categoryId, makerworldCookie, onUn
       await startLinksImport({
         urls,
         scope: profileScope,
-        category_id: categoryId || undefined,
+        category_id: effectiveCategoryId || undefined,
         makerworld_cookie: (makerworldCookie || "").trim() || undefined,
         ...captcha,
       });
