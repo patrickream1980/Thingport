@@ -28,6 +28,7 @@ import ModelCard from "./ModelCard";
 import SortTabs from "./SortTabs";
 
 const PAGE_SIZE = 24;
+const UNASSIGNED_CATEGORY_ID = "__unassigned__";
 
 type Props = {
   categoryId: string | null;
@@ -113,6 +114,7 @@ export default function ModelsPage({
   // A category includes the models at every level beneath it.
   const categoryIdFilter = useMemo(() => {
     if (!categoryId) return undefined;
+    if (categoryId === UNASSIGNED_CATEGORY_ID) return UNASSIGNED_CATEGORY_ID;
     const ids = subtreeIds(buildCategoryTree(categories), categoryId);
     return ids.length === 1 ? categoryId : ids;
   }, [categoryId, categories]);
@@ -132,10 +134,18 @@ export default function ModelsPage({
     [selectedIds, visibleIds],
   );
   usePageHeader({
-    title: selectedCategory ? selectedCategory.name || t("models:categories.untitled") : undefined,
-    subtitle: selectedCategory
-      ? t(selectedCategory.kind === "folder" ? "models:folders.subtitle" : "models:categories.subtitle")
-      : undefined,
+    title:
+      categoryId === UNASSIGNED_CATEGORY_ID
+        ? "Unassigned"
+        : selectedCategory
+          ? selectedCategory.name || t("models:categories.untitled")
+          : undefined,
+    subtitle:
+      categoryId === UNASSIGNED_CATEGORY_ID
+        ? "Models that have not been assigned to a category"
+        : selectedCategory
+          ? t(selectedCategory.kind === "folder" ? "models:folders.subtitle" : "models:categories.subtitle")
+          : undefined,
     onBack: categoryId ? () => onSelectCategory(null) : undefined,
   });
 
@@ -303,6 +313,7 @@ export default function ModelsPage({
 
       const targetIsInCurrentFilter =
         categoryIdFilter === undefined ||
+        (categoryIdFilter === UNASSIGNED_CATEGORY_ID && targetCategoryId === null) ||
         (targetCategoryId !== null &&
           (Array.isArray(categoryIdFilter)
             ? categoryIdFilter.includes(targetCategoryId)
