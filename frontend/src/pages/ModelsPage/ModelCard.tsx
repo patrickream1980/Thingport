@@ -101,13 +101,7 @@ export default function ModelCard({
   return (
     <Paper
       variant="outlined"
-      onClick={() => {
-        if (selectionMode && onSelectionChange) {
-          onSelectionChange(!selected);
-          return;
-        }
-        navigate(`/models/${item.id}`);
-      }}
+      onClick={() => navigate(`/models/${item.id}`)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       sx={{
