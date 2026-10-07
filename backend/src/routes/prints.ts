@@ -62,7 +62,8 @@ async function buildPrintWhere(req: Request): Promise<Prisma.PrintWhereInput> {
   const where: Prisma.PrintWhereInput = { userId: req.userId };
   // AND clauses so the self-author and search OR groups don't clobber each other.
   const andClauses: Prisma.PrintWhereInput[] = [];
-  if (categoryIds.length === 1) where.categoryId = categoryIds[0];
+  if (categoryIds.length === 1 && categoryIds[0] === "__unassigned__") where.categoryId = null;
+  else if (categoryIds.length === 1) where.categoryId = categoryIds[0];
   else if (categoryIds.length > 1) where.categoryId = { in: categoryIds };
   if (authorId === SELF_AUTHOR_ID) {
     // "My models": prints with no author at all, or by an Author the user linked as themselves.
