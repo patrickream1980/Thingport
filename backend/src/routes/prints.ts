@@ -9,8 +9,8 @@ import { normalizeTags } from "../utils/tagNormalization";
 import { parseBody } from "../utils/validate";
 import { asyncHandler } from "../utils/asyncHandler";
 import { modelUpload } from "../uploadMiddleware";
-import { createPrint, deletePlateFiles, resolvePlateFilePath, type NewPlateInput } from "../services/printCreation";
-import { plateThumbPath, relocatePrint, relocatePrintsForToken, uniqueModelName } from "../services/printService";
+import { createPrint, deletePlateFiles, refreshAutoPreparedMetadata, resolvePlateFilePath, type NewPlateInput } from "../services/printCreation";
+import { availableModelName, plateThumbPath, relocatePrint, relocatePrintsForToken, uniqueModelName } from "../services/printService";
 import { previewImagePath, deleteAllPreviewImages } from "../services/previewImageService";
 import {
   deleteAllDescriptionImages,
@@ -537,6 +537,145 @@ router.post(
       targetId: print.id,
       details: { field: "meta", name: updated.name },
     });
+  }),
+);
+
+const groupPrintsSchema = z.object({
+  print_ids: z.array(z.string().min(1)).min(2).max(200),
+  name: z.string().trim().min(1).max(120),
+});
+
+router.post(
+  "/prints/group",
+  asyncHandler(async (req, res) => {
+    const body = parseBody(groupPrintsSchema, req.body);
+    const ids = [...new Set(body.print_ids)];
+    if (ids.length < 2) throw new HttpError(400, "Select at least two models to group");
+
+    const found = await prisma.print.findMany({
+      where: { id: { in: ids }, userId: req.userId },
+      include: {
+        plates: { orderBy: { position: "asc" } },
+        previewImages: { orderBy: { position: "asc" } },
+        files: true,
+        collectionItems: true,
+        descriptionImages: true,
+      },
+    });
+    if (found.length !== ids.length) throw new HttpError(404, "One or more selected models were not found");
+
+    const byId = new Map(found.map((print) => [print.id, print]));
+    const sourcePrints = ids.map((id) => byId.get(id)!);
+    const firstCategoryId = sourcePrints[0].categoryId ?? null;
+    const categoryId = sourcePrints.every((print) => (print.categoryId ?? null) === firstCategoryId)
+      ? firstCategoryId
+      : null;
+    const name = await availableModelName(req.userId!, body.name, categoryId);
+    const tags = normalizeTags(sourcePrints.flatMap((print) => print.tags));
+    const authorIds = [...new Set(sourcePrints.map((print) => print.authorId).filter(Boolean))] as string[];
+    const descriptionImageIds = sourcePrints.flatMap((print) => print.descriptionImages.map((image) => image.id));
+
+    const grouped = await prisma.$transaction(async (tx) => {
+      const created = await tx.print.create({
+        data: {
+          userId: req.userId!,
+          name,
+          nameNormalized: name.trim().toLowerCase(),
+          title: name,
+          tags,
+          categoryId,
+        },
+      });
+
+      const usedFilenames = new Set<string>();
+      const uniqueFilename = (filename: string) => {
+        const lower = filename.toLowerCase();
+        if (!usedFilenames.has(lower)) {
+          usedFilenames.add(lower);
+          return filename;
+        }
+        const ext = path.extname(filename);
+        const stem = path.basename(filename, ext);
+        let suffix = 2;
+        for (;;) {
+          const candidate = `${stem} (${suffix})${ext}`;
+          if (!usedFilenames.has(candidate.toLowerCase())) {
+            usedFilenames.add(candidate.toLowerCase());
+            return candidate;
+          }
+          suffix += 1;
+        }
+      };
+
+      let platePosition = 0;
+      let previewPosition = 0;
+      const collectionIds = new Set<string>();
+
+      for (const source of sourcePrints) {
+        for (const plate of source.plates) {
+          await tx.plate.update({
+            where: { id: plate.id },
+            data: {
+              printId: created.id,
+              position: platePosition++,
+              filename: uniqueFilename(plate.filename),
+              // A grouped model no longer maps one-to-one to an imported source/profile.
+              sourceInstanceId: null,
+            },
+          });
+        }
+
+        for (const image of source.previewImages) {
+          await tx.previewImage.update({
+            where: { id: image.id },
+            data: { printId: created.id, position: previewPosition++ },
+          });
+        }
+
+        // Preserve related files, but a prepared file from one source model cannot represent the
+        // newly combined model, so expose it as a normal supporting file instead.
+        await tx.printFile.updateMany({
+          where: { printId: source.id },
+          data: { printId: created.id, role: "SUPPORTING" },
+        });
+
+        for (const item of source.collectionItems) collectionIds.add(item.collectionId);
+      }
+
+      if (collectionIds.size) {
+        await tx.collectionItem.createMany({
+          data: [...collectionIds].map((collectionId, position) => ({
+            collectionId,
+            printId: created.id,
+            position,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      // Plates, previews and related files have already been reassigned. Everything else on the
+      // source records is intentionally discarded because the new model is a composite.
+      await tx.print.deleteMany({ where: { id: { in: ids }, userId: req.userId } });
+      return created;
+    });
+
+    const plates = await prisma.plate.findMany({ where: { printId: grouped.id }, orderBy: { position: "asc" } });
+    try {
+      await relocatePrint(grouped, plates);
+    } catch (err) {
+      // The database paths still point to the old, existing files, so grouping is valid even if a
+      // cosmetic storage re-layout fails. A later storage reorganization can retry the move.
+      console.error("Couldn't relocate grouped model files", err);
+    }
+    await refreshAutoPreparedMetadata(grouped.id);
+
+    // Description images belong to source notes, which a composite intentionally doesn't inherit.
+    for (const imageId of descriptionImageIds) {
+      await fs.promises.rm(descriptionImagePath(imageId), { force: true }).catch(() => undefined);
+    }
+    for (const authorId of authorIds) await deleteAuthorIfOrphaned(authorId);
+
+    res.json({ print: await printOutById(req.userId!, grouped.id) });
   }),
 );
 
