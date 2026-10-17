@@ -394,7 +394,26 @@ export default function GlobalSearch({ onUnauthorized, theme, onThemeChange, onL
           kindLabel("tag"),
         ),
       );
-      if (models.length) sections.push({ id: "models", label: t("app:search.sectionModels"), items: models });
+      if (models.length) {
+        const showAllModels: Item = {
+          key: `models:all:${trimmedQuery}`,
+          title: `Show all model matches for “${trimmedQuery}”`,
+          subtitle: "Open the Models grid to select and manage all matches",
+          accessory: kindLabel("model"),
+          icon: <ViewInArIcon />,
+          actionLabel: t("app:search.open"),
+          run: () => {
+            const q = trimmedQuery;
+            finish();
+            navigate(`/models?q=${encodeURIComponent(q)}`);
+          },
+        };
+        sections.push({
+          id: "models",
+          label: t("app:search.sectionModels"),
+          items: [...models, showAllModels],
+        });
+      }
       if (collections.length) {
         sections.push({ id: "collections", label: t("app:search.sectionCollections"), items: collections });
       }
