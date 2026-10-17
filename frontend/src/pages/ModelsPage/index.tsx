@@ -71,6 +71,7 @@ export default function ModelsPage({
   const panelKind = categoriesView === "folders" ? "folder" : "category";
   const panelCategories = useMemo(() => categories.filter((c) => c.kind === panelKind), [categories, panelKind]);
   const sortModeParam = searchParams.get("orderBy");
+  const searchQuery = (searchParams.get("q") || "").trim();
   const sortMode: PrintSortMode =
     sortModeParam === "popular" || sortModeParam === "downloads" ? sortModeParam : "newest";
 
@@ -136,13 +137,17 @@ export default function ModelsPage({
   );
   usePageHeader({
     title:
-      categoryId === UNASSIGNED_CATEGORY_ID
+      searchQuery
+        ? `Search: ${searchQuery}`
+        : categoryId === UNASSIGNED_CATEGORY_ID
         ? "Unassigned"
         : selectedCategory
           ? selectedCategory.name || t("models:categories.untitled")
           : undefined,
     subtitle:
-      categoryId === UNASSIGNED_CATEGORY_ID
+      searchQuery
+        ? "All matching models"
+        : categoryId === UNASSIGNED_CATEGORY_ID
         ? "Models that have not been assigned to a category"
         : selectedCategory
           ? t(selectedCategory.kind === "folder" ? "models:folders.subtitle" : "models:categories.subtitle")
@@ -179,6 +184,7 @@ export default function ModelsPage({
     (async () => {
       try {
         const result = await printsApi.list({
+          q: searchQuery || undefined,
           category_id: categoryIdFilter,
           order_by: sortMode,
           limit: PAGE_SIZE,
@@ -194,13 +200,14 @@ export default function ModelsPage({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryIdFilter, printsVersion, sortMode]);
+  }, [categoryIdFilter, printsVersion, sortMode, searchQuery]);
 
   const loadMore = async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
       const result = await printsApi.list({
+        q: searchQuery || undefined,
         category_id: categoryIdFilter,
         order_by: sortMode,
         limit: PAGE_SIZE,
@@ -451,7 +458,12 @@ export default function ModelsPage({
                 boxShadow: 2,
               }}
             >
-              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                sx={{ flexWrap: "nowrap", overflowX: "auto", whiteSpace: "nowrap", pb: 0.25 }}
+              >
                 <Typography variant="body2" sx={{ minWidth: 90, fontWeight: selectedVisibleCount ? 600 : 400 }}>
                   {selectedVisibleCount} selected
                 </Typography>
@@ -465,7 +477,7 @@ export default function ModelsPage({
                 <Button size="small" onClick={clearSelection} disabled={bulkUpdating || selectedVisibleCount === 0}>
                   Deselect all
                 </Button>
-                <FormControl size="small" sx={{ minWidth: 240 }}>
+                <FormControl size="small" sx={{ minWidth: 210, flexShrink: 0 }}>
                   <InputLabel id="bulk-category-label">{t("models:edit.categoryOrFolder")}</InputLabel>
                   <Select
                     labelId="bulk-category-label"
@@ -502,6 +514,7 @@ export default function ModelsPage({
                   </Select>
                 </FormControl>
                 <Button
+                  sx={{ flexShrink: 0 }}
                   variant="contained"
                   onClick={applyBulkCategory}
                   disabled={bulkUpdating || selectedVisibleCount === 0 || bulkCategoryId === "__unset__"}
@@ -509,6 +522,7 @@ export default function ModelsPage({
                   {bulkUpdating ? <CircularProgress size={16} color="inherit" /> : "Assign category"}
                 </Button>
                 <Button
+                  sx={{ flexShrink: 0 }}
                   variant="outlined"
                   onClick={groupSelectedModels}
                   disabled={bulkUpdating || selectedVisibleCount < 2}
@@ -516,6 +530,7 @@ export default function ModelsPage({
                   Group into one model
                 </Button>
                 <Button
+                  sx={{ flexShrink: 0 }}
                   variant="outlined"
                   color="error"
                   onClick={deleteSelectedModels}
