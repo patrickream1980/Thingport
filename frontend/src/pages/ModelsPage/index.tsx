@@ -449,7 +449,7 @@ export default function ModelsPage({
               variant="outlined"
               sx={{
                 position: "sticky",
-                top: 8,
+                top: "calc(var(--topbar-height, 64px) + 8px)",
                 zIndex: 20,
                 mb: 2,
                 p: 1.5,
@@ -458,87 +458,89 @@ export default function ModelsPage({
                 boxShadow: 2,
               }}
             >
-              <Stack
-                direction="row"
-                spacing={1}
-                alignItems="center"
-                sx={{ flexWrap: "nowrap", overflowX: "auto", whiteSpace: "nowrap", pb: 0.25 }}
-              >
-                <Typography variant="body2" sx={{ minWidth: 90, fontWeight: selectedVisibleCount ? 600 : 400 }}>
-                  {selectedVisibleCount} selected
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={selectAllVisible}
-                  disabled={bulkUpdating || selectedVisibleCount === items.length}
+              <Box sx={{ overflowX: "auto", overflowY: "visible", pt: 0.75, pb: 0.5 }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  sx={{ flexWrap: "nowrap", whiteSpace: "nowrap", width: "max-content", minWidth: "100%" }}
                 >
-                  Select all loaded
-                </Button>
-                <Button size="small" onClick={clearSelection} disabled={bulkUpdating || selectedVisibleCount === 0}>
-                  Deselect all
-                </Button>
-                <FormControl size="small" sx={{ minWidth: 210, flexShrink: 0 }}>
-                  <InputLabel id="bulk-category-label">{t("models:edit.categoryOrFolder")}</InputLabel>
-                  <Select
-                    labelId="bulk-category-label"
-                    label={t("models:edit.categoryOrFolder")}
-                    value={bulkCategoryId}
-                    onChange={(e) => setBulkCategoryId(e.target.value)}
+                  <Typography variant="body2" sx={{ minWidth: 90, fontWeight: selectedVisibleCount ? 600 : 400 }}>
+                    {selectedVisibleCount} selected
+                  </Typography>
+                  <Button
+                    size="small"
+                    onClick={selectAllVisible}
+                    disabled={bulkUpdating || selectedVisibleCount === items.length}
+                  >
+                    Select all loaded
+                  </Button>
+                  <Button size="small" onClick={clearSelection} disabled={bulkUpdating || selectedVisibleCount === 0}>
+                    Deselect all
+                  </Button>
+                  <FormControl size="small" sx={{ minWidth: 210, flexShrink: 0 }}>
+                    <InputLabel id="bulk-category-label">{t("models:edit.categoryOrFolder")}</InputLabel>
+                    <Select
+                      labelId="bulk-category-label"
+                      label={t("models:edit.categoryOrFolder")}
+                      value={bulkCategoryId}
+                      onChange={(e) => setBulkCategoryId(e.target.value)}
+                      disabled={bulkUpdating || selectedVisibleCount === 0}
+                    >
+                      <MenuItem value="__unset__" disabled>
+                        Choose a category or folder
+                      </MenuItem>
+                      <MenuItem value="">{t("models:edit.noCategory")}</MenuItem>
+                      {flatCategories.map(({ category, depth }) =>
+                        depth === 0 ? (
+                          <MenuItem key={category.id} disabled divider sx={{ fontWeight: 700, opacity: "1 !important" }}>
+                            {categoryName(category)}
+                          </MenuItem>
+                        ) : (
+                          <MenuItem key={category.id} value={category.id} sx={{ pl: 1 + depth * 2 }}>
+                            {categoryName(category)}
+                          </MenuItem>
+                        ),
+                      )}
+                      {flatFolders.length > 0 && (
+                        <MenuItem disabled divider sx={{ fontWeight: 700, opacity: "1 !important" }}>
+                          {t("models:folders.title")}
+                        </MenuItem>
+                      )}
+                      {flatFolders.map(({ category, depth }) => (
+                        <MenuItem key={category.id} value={category.id} sx={{ pl: 2 + depth * 2 }}>
+                          {categoryName(category) || t("models:categories.untitled")}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <Button
+                    sx={{ flexShrink: 0 }}
+                    variant="contained"
+                    onClick={applyBulkCategory}
+                    disabled={bulkUpdating || selectedVisibleCount === 0 || bulkCategoryId === "__unset__"}
+                  >
+                    {bulkUpdating ? <CircularProgress size={16} color="inherit" /> : "Assign category"}
+                  </Button>
+                  <Button
+                    sx={{ flexShrink: 0 }}
+                    variant="outlined"
+                    onClick={groupSelectedModels}
+                    disabled={bulkUpdating || selectedVisibleCount < 2}
+                  >
+                    Group into one model
+                  </Button>
+                  <Button
+                    sx={{ flexShrink: 0 }}
+                    variant="outlined"
+                    color="error"
+                    onClick={deleteSelectedModels}
                     disabled={bulkUpdating || selectedVisibleCount === 0}
                   >
-                    <MenuItem value="__unset__" disabled>
-                      Choose a category or folder
-                    </MenuItem>
-                    <MenuItem value="">{t("models:edit.noCategory")}</MenuItem>
-                    {flatCategories.map(({ category, depth }) =>
-                      depth === 0 ? (
-                        <MenuItem key={category.id} disabled divider sx={{ fontWeight: 700, opacity: "1 !important" }}>
-                          {categoryName(category)}
-                        </MenuItem>
-                      ) : (
-                        <MenuItem key={category.id} value={category.id} sx={{ pl: 1 + depth * 2 }}>
-                          {categoryName(category)}
-                        </MenuItem>
-                      ),
-                    )}
-                    {flatFolders.length > 0 && (
-                      <MenuItem disabled divider sx={{ fontWeight: 700, opacity: "1 !important" }}>
-                        {t("models:folders.title")}
-                      </MenuItem>
-                    )}
-                    {flatFolders.map(({ category, depth }) => (
-                      <MenuItem key={category.id} value={category.id} sx={{ pl: 2 + depth * 2 }}>
-                        {categoryName(category) || t("models:categories.untitled")}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <Button
-                  sx={{ flexShrink: 0 }}
-                  variant="contained"
-                  onClick={applyBulkCategory}
-                  disabled={bulkUpdating || selectedVisibleCount === 0 || bulkCategoryId === "__unset__"}
-                >
-                  {bulkUpdating ? <CircularProgress size={16} color="inherit" /> : "Assign category"}
-                </Button>
-                <Button
-                  sx={{ flexShrink: 0 }}
-                  variant="outlined"
-                  onClick={groupSelectedModels}
-                  disabled={bulkUpdating || selectedVisibleCount < 2}
-                >
-                  Group into one model
-                </Button>
-                <Button
-                  sx={{ flexShrink: 0 }}
-                  variant="outlined"
-                  color="error"
-                  onClick={deleteSelectedModels}
-                  disabled={bulkUpdating || selectedVisibleCount === 0}
-                >
-                  Delete selected
-                </Button>
-              </Stack>
+                    Delete selected
+                  </Button>
+                </Stack>
+              </Box>
             </Paper>
           )}
           {loading ? (
