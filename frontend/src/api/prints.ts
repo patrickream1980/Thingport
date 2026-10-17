@@ -397,6 +397,17 @@ export const printsApi = {
     return res.json();
   },
 
+  group: async (printIds: string[], name: string): Promise<{ print: Print }> => {
+    const res = await fetch(`${apiBase()}/prints/group`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ print_ids: printIds, name }),
+    });
+    if (res.status === 401) throw new UnauthorizedError();
+    if (!res.ok) throw new Error(await readErrorMessage(res, "Failed to group models"));
+    return res.json();
+  },
+
   resetAuthor: async (id: string): Promise<{ print: Print }> => {
     const res = await fetch(`${apiBase()}/print/${id}/author-reset`, { method: "POST", headers: authHeaders() });
     if (res.status === 401) throw new UnauthorizedError();
