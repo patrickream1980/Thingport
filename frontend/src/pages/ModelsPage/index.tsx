@@ -298,6 +298,46 @@ export default function ModelsPage({
   const selectAllVisible = () => setSelectedIds(new Set(items.map((item) => item.id)));
   const clearSelection = () => setSelectedIds(new Set());
 
+  const groupSelectedModels = async () => {
+    if (selectedVisibleCount < 2 || bulkUpdating) return;
+    const selectedModels = items.filter((item) => selectedIds.has(item.id));
+    const ids = selectedModels.map((item) => item.id);
+    const defaultName = selectedModels[0]?.title || selectedModels[0]?.name || "Grouped model";
+    const requestedName = window.prompt("Name for the grouped model", defaultName);
+    const name = requestedName?.trim();
+    if (!name) return;
+    if (
+      !window.confirm(
+        `Group ${ids.length} models into "${name}"?\n\nThe selected model entries will be replaced by one model containing all of their parts.`,
+      )
+    ) {
+      return;
+    }
+
+    setBulkUpdating(true);
+    try {
+      const result = await printsApi.group(ids, name);
+      const grouped = result.print;
+      const groupedIsInCurrentFilter =
+        categoryIdFilter === undefined ||
+        (categoryIdFilter === UNASSIGNED_CATEGORY_ID && !grouped.category_id) ||
+        (grouped.category_id &&
+          (Array.isArray(categoryIdFilter)
+            ? categoryIdFilter.includes(grouped.category_id)
+            : categoryIdFilter === grouped.category_id));
+
+      setItems((prev) => {
+        const remaining = prev.filter((item) => !ids.includes(item.id));
+        return groupedIsInCurrentFilter ? [grouped, ...remaining] : remaining;
+      });
+      clearSelection();
+    } catch (err) {
+      handleError(err, "Failed to group selected models");
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   const applyBulkCategory = async () => {
     if (!selectedVisibleCount || bulkUpdating || bulkCategoryId === "__unset__") return;
     setBulkUpdating(true);
@@ -412,6 +452,11 @@ export default function ModelsPage({
               >
                 {bulkUpdating ? <CircularProgress size={16} color="inherit" /> : "Assign category"}
               </Button>
+              {selectedVisibleCount >= 2 && (
+                <Button variant="outlined" onClick={groupSelectedModels} disabled={bulkUpdating}>
+                  Group into one model
+                </Button>
+              )}
               <Button onClick={clearSelection} disabled={bulkUpdating}>
                 Clear
               </Button>
