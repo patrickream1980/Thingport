@@ -16,6 +16,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
+import Checkbox from "@mui/material/Checkbox";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -126,6 +127,8 @@ function CategoryRow({
   addChildLabel,
   onRename,
   onDelete,
+  selected,
+  onSelectedChange,
 }: {
   name: string;
   depth: number;
@@ -144,6 +147,8 @@ function CategoryRow({
   addChildLabel: string;
   onRename: (name: string) => Promise<void>;
   onDelete: () => void;
+  selected: boolean;
+  onSelectedChange: (selected: boolean) => void;
 }) {
   const { t } = useTranslation(["models", "common"]);
   const [editing, setEditing] = useState(false);
@@ -289,6 +294,15 @@ function CategoryRow({
         </Stack>
       }
     >
+      <Checkbox
+        size="small"
+        checked={selected}
+        onChange={(e) => onSelectedChange(e.target.checked)}
+        disabled={busy}
+        onClick={(e) => e.stopPropagation()}
+        sx={{ p: 0.5, mr: 0.25, flexShrink: 0 }}
+        inputProps={{ "aria-label": `Select ${name}` }}
+      />
       {dragHandle}
       <Typography
         variant="body2"
@@ -487,6 +501,7 @@ export default function CategoryManagerModal({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [metaCategory, setMetaCategory] = useState<Category | null>(null);
   const [addingUnderId, setAddingUnderId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // A drop shows right away and stays until `categories` is refetched (which happens on failure too).
   const [optimistic, setOptimistic] = useState<{ base: Category[]; list: Category[] } | null>(null);
@@ -528,6 +543,35 @@ export default function CategoryManagerModal({
     setBusyId(category.id);
     try {
       await onDelete(category.id);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const toggleSelected = (id: string, selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (selected) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    const selected = flat.filter(({ category }) => selectedIds.has(category.id));
+    if (!selected.length) return;
+    const message =
+      `Delete ${selected.length} selected ${kind === "folder" ? "folder" : "categor"}${selected.length === 1 ? (kind === "folder" ? "" : "y") : kind === "folder" ? "s" : "ies"}?\n\n` +
+      "Models inside them will follow Thingport's existing delete behavior. This cannot be undone.";
+    if (!(await confirmDialog({ message, destructive: true }))) return;
+
+    try {
+      // Delete deepest rows first so a selected parent cannot move a selected child before its own deletion.
+      for (const { category, depth } of selected.toSorted((a, b) => b.depth - a.depth)) {
+        setBusyId(category.id);
+        await onDelete(category.id);
+      }
+      setSelectedIds(new Set());
     } finally {
       setBusyId(null);
     }
@@ -666,6 +710,8 @@ export default function CategoryManagerModal({
                         addChildLabel={t(`${labels}.addSubcategory`)}
                         onRename={(name) => onRename(category.id, name)}
                         onDelete={() => handleDelete(category)}
+                        selected={selectedIds.has(category.id)}
+                        onSelectedChange={(selected) => toggleSelected(category.id, selected)}
                       />
                       {addAfterId === category.id && addingUnderId && (
                         <InlineAddRow
@@ -725,7 +771,33 @@ export default function CategoryManagerModal({
             }}
           />
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ justifyContent: "space-between" }}>
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              onClick={() => setSelectedIds(new Set(flat.map(({ category }) => category.id)))}
+              disabled={!flat.length || selectedIds.size === flat.length || busyId !== null}
+            >
+              Select all
+            </Button>
+            <Button
+              size="small"
+              onClick={() => setSelectedIds(new Set())}
+              disabled={!selectedIds.size || busyId !== null}
+            >
+              Deselect all
+            </Button>
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              startIcon={<DeleteIcon />}
+              onClick={handleDeleteSelected}
+              disabled={!selectedIds.size || busyId !== null}
+            >
+              Delete selected ({selectedIds.size})
+            </Button>
+          </Stack>
           <Button onClick={onClose}>{t("common:close")}</Button>
         </DialogActions>
       </Dialog>
