@@ -29,6 +29,7 @@ import ModelActionsMenu from "./ModelActionsMenu";
 import FavoriteButton from "./FavoriteButton";
 import ModelSidePanel from "./ModelSidePanel";
 import MarkdownDescription from "../../components/MarkdownDescription";
+import PlateThumbnail from "../../components/media/PlateThumbnail";
 
 type Props = {
   theme: ResolvedTheme;
@@ -46,6 +47,7 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
   const [notFound, setNotFound] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewPlateId, setPreviewPlateId] = useState<string | null>(null);
 
   // Returns wherever the user came from; useSmartBack skips same-route history entries.
   const goBack = useSmartBack();
@@ -228,7 +230,10 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
                 variant="contained"
                 size="small"
                 startIcon={<ViewInArIcon fontSize="small" />}
-                onClick={() => setPreviewOpen(true)}
+                onClick={() => {
+                  setPreviewPlateId(firstPlate.id);
+                  setPreviewOpen(true);
+                }}
                 sx={{
                   position: "absolute",
                   left: 12,
@@ -279,6 +284,47 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
                 theme={theme}
                 mode="automatic"
               />
+            </Box>
+          )}
+
+          {print.plates.length > 1 && (
+            <Box sx={{ mt: 1.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                Files ({print.plates.length}) — scroll horizontally and click a file to preview it
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ overflowX: "auto", pb: 0.75 }}>
+                {print.plates
+                  .toSorted((a, b) => a.position - b.position)
+                  .map((plate) => (
+                    <ButtonBase
+                      key={plate.id}
+                      onClick={() => {
+                        setPreviewPlateId(plate.id);
+                        setPreviewOpen(true);
+                      }}
+                      title={plate.filename}
+                      sx={{
+                        width: 160,
+                        minWidth: 160,
+                        p: 0.75,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 1.5,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        justifyContent: "flex-start",
+                        textAlign: "left",
+                        bgcolor: "background.paper",
+                      }}
+                    >
+                      <PlateThumbnail plate={plate} />
+                      <Typography variant="caption" noWrap sx={{ minWidth: 0, flex: 1 }}>
+                        {plate.filename}
+                      </Typography>
+                    </ButtonBase>
+                  ))}
+              </Stack>
             </Box>
           )}
 
@@ -357,7 +403,13 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
         </Box>
       </Box>
 
-      {previewOpen && <Model3DPreviewModal print={print} onClose={() => setPreviewOpen(false)} />}
+      {previewOpen && (
+        <Model3DPreviewModal
+          print={print}
+          initialPlateId={previewPlateId}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
     </Box>
   );
 }
