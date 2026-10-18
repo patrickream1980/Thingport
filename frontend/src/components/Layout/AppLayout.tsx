@@ -162,7 +162,7 @@ function AppLayoutShell({
         }}
       >
         <Sidebar isAdmin={isAdmin} onSelectCategory={onSelectCategory} bookmarksVersion={bookmarksVersion} />
-        <Box component="main" sx={{ flex: 1, p: 2, pt: 0 }}>
+        <Box component="main" sx={{ flex: 1, minWidth: 0, maxWidth: "100%", overflowX: "hidden", p: 2, pt: 0 }}>
           {apiUp === false && (
             <Alert severity="error" sx={{ mb: 1.5 }}>
               {t("shell.apiUnreachable")}
