@@ -132,6 +132,48 @@ function isModelFile(name: string) {
   return MODEL_EXTS.has(extOf(name));
 }
 
+/**
+ * Builds one Thingport model without sending the whole folder in one multipart request.
+ * This avoids nginx's total request-size ceiling for very large model folders.
+ */
+async function uploadFolderModelSequential(
+  entries: UploadEntry[],
+  title: string,
+  categoryId: string | null,
+): Promise<Print> {
+  const sorted = entries.toSorted(byName);
+  const modelEntries = sorted.filter((e) => isModelFile(e.file.name));
+  const previewEntries = sorted.filter((e) => isPreviewImage(e.file));
+  const supportingEntries = sorted.filter(
+    (e) => !isModelFile(e.file.name) && !isPreviewImage(e.file),
+  );
+
+  if (!modelEntries.length) {
+    throw new Error("Folder contains no supported model files");
+  }
+
+  const created = await printsApi.upload([modelEntries[0].file], {
+    title,
+    category_id: categoryId || undefined,
+  });
+  let print = created.prints[0];
+  if (!print) throw new Error("Upload did not create a model");
+
+  for (const entry of modelEntries.slice(1)) {
+    print = (await printsApi.addPlates(print.id, [entry.file])).print;
+  }
+
+  for (const entry of previewEntries) {
+    print = (await printsApi.addPreviewImages(print.id, [entry.file])).print;
+  }
+
+  for (const entry of supportingEntries) {
+    print = await printsApi.uploadFile(print.id, entry.file);
+  }
+
+  return print;
+}
+
 // Larger images than the preview-image endpoint takes are attached to the model as files instead.
 const PREVIEW_IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "webp", "bmp"]);
 const PREVIEW_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
@@ -296,30 +338,10 @@ export async function uploadFoldersAsModels(
         continue;
       }
 
-      const result = await printsApi.upload(
-        files.map((e) => e.file),
-        { title: group.modelName, category_id: categoryId || undefined, mode: "multiplate" },
-      );
+      const print = await uploadFolderModelSequential(group.entries, group.modelName, categoryId);
       uploaded += 1;
-      uploadedEntries.push(...files);
-
-      let print = result.prints[0];
-      if (print && images.length) {
-        try {
-          print = (
-            await printsApi.addPreviewImages(
-              print.id,
-              images.map((e) => e.file),
-            )
-          ).print;
-          uploadedEntries.push(...images);
-        } catch (err) {
-          if (err instanceof UnauthorizedError) throw err;
-          console.error("Preview images failed for", group.modelName, err);
-          failed.push(failureLabel(`${group.modelName} (images)`, err));
-        }
-      }
-      if (print) prints.push(print);
+      uploadedEntries.push(...group.entries);
+      prints.push(print);
     } catch (err) {
       if (err instanceof UnauthorizedError) {
         onUnauthorized?.();
