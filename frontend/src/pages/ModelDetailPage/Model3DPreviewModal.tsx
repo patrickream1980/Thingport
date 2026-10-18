@@ -43,16 +43,19 @@ const overlayButtonSx = {
 type Props = {
   print: Print;
   onClose: () => void;
+  initialPlateId?: string | null;
 };
 
 /** The plate list is always shown, even for one plate, so the layout doesn't jump. */
-export default function Model3DPreviewModal({ print, onClose }: Props) {
+export default function Model3DPreviewModal({ print, onClose, initialPlateId }: Props) {
   const { t } = useTranslation(["models", "library", "common"]);
   const muiTheme = useTheme();
   const themeMode = muiTheme.palette.mode;
   const previewBg = themeMode === "dark" ? muiTheme.thingport.pageBackground : LIGHT_PREVIEW_BG;
   const sortedPlates = useMemo(() => print.plates.toSorted((a, b) => a.position - b.position), [print.plates]);
-  const [activePlateId, setActivePlateId] = useState<string | null>(sortedPlates[0]?.id ?? null);
+  const [activePlateId, setActivePlateId] = useState<string | null>(
+    initialPlateId && sortedPlates.some((p) => p.id === initialPlateId) ? initialPlateId : (sortedPlates[0]?.id ?? null),
+  );
   const activePlate = sortedPlates.find((p) => p.id === activePlateId) || sortedPlates[0];
   const ext = activePlate ? extOf(activePlate.filename) : "";
   const is3d = Boolean(activePlate) && MODEL_EXTS.has(ext);
