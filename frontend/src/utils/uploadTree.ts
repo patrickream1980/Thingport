@@ -218,19 +218,54 @@ export async function uploadFoldersAsModels(
   parentCategoryId: string | null,
   onUnauthorized?: () => void,
 ) {
-  const groups = new Map<string, { segments: string[]; entries: UploadEntry[] }>();
-  for (const entry of entries) {
-    const segments = splitPath(entry);
-    const key = segments.join("/");
-    const group = groups.get(key) ?? { segments, entries: [] };
-    group.entries.push(entry);
-    groups.set(key, group);
-  }
+  /*
+   * Folder-tree import semantics:
+   *
+   *   SelectedRoot/
+   *     Bases/
+   *       base-a.stl
+   *       variants/base-b.stl
+   *     Bins/
+   *       bin-a.stl
+   *
+   * becomes a Thingport folder/category "SelectedRoot" containing two models:
+   * "Bases" and "Bins". Everything below each immediate child folder is folded into
+   * that model recursively. Files directly in SelectedRoot still import individually.
+   *
+   * This is intentionally based on the first two relative-path segments rather than
+   * the direct parent folder of every file, so deeper subfolders don't fragment one
+   * logical model into many Thingport models.
+   */
+  const rootNames = [...new Set(
+    entries
+      .map((entry) => normalizeRelativePath(entry.relativePath || entry.file.name).split("/").filter(Boolean)[0])
+      .filter(Boolean),
+  )];
 
-  const modelGroups = [...groups.values()].filter(
-    (g) => g.segments.length > 0 && g.entries.some((e) => isModelFile(e.file.name)),
-  );
-  const rest = [...groups.values()].filter((g) => !modelGroups.includes(g)).flatMap((g) => g.entries);
+  const modelGroups = new Map<
+    string,
+    { rootName: string; modelName: string; entries: UploadEntry[] }
+  >();
+  const rootLevelEntries: UploadEntry[] = [];
+
+  for (const entry of entries) {
+    const parts = normalizeRelativePath(entry.relativePath || entry.file.name)
+      .split("/")
+      .filter(Boolean);
+
+    // Folder picker paths normally start with the selected root folder name.
+    if (parts.length >= 3) {
+      const rootName = parts[0];
+      const modelName = parts[1];
+      const key = `${rootName}/${modelName}`;
+      const group = modelGroups.get(key) ?? { rootName, modelName, entries: [] };
+      group.entries.push(entry);
+      modelGroups.set(key, group);
+    } else {
+      // A file directly inside the selected root remains its own model/file import.
+      rootLevelEntries.push(entry);
+    }
+  }
 
   const failed: string[] = [];
   let uploaded = 0;
@@ -238,27 +273,36 @@ export async function uploadFoldersAsModels(
   const prints: Print[] = [];
   const resolveCategory = categoryResolver(parentCategoryId);
 
-  for (const group of modelGroups) {
-    const folderName = group.segments[group.segments.length - 1];
+  for (const group of modelGroups.values()) {
     const sorted = group.entries.toSorted(byName);
     const images = sorted.filter((e) => isPreviewImage(e.file));
     const files = sorted.filter((e) => !isPreviewImage(e.file));
+
+    // Only turn the child folder into a model when something beneath it is actually a model file.
+    // Otherwise let those entries fall through to normal per-file handling below.
+    if (!files.some((e) => isModelFile(e.file.name))) {
+      rootLevelEntries.push(...group.entries);
+      continue;
+    }
+
     try {
       let categoryId: string | null;
       try {
-        categoryId = await resolveCategory(group.segments.slice(0, -1));
+        categoryId = await resolveCategory([group.rootName]);
       } catch (err) {
         if (err instanceof UnauthorizedError) throw err;
-        console.error("Category creation failed for", group.segments.join("/"), err);
-        failed.push(folderName);
+        console.error("Category creation failed for", group.rootName, err);
+        failed.push(group.modelName);
         continue;
       }
+
       const result = await printsApi.upload(
         files.map((e) => e.file),
-        { title: folderName, category_id: categoryId || undefined, mode: "multiplate" },
+        { title: group.modelName, category_id: categoryId || undefined, mode: "multiplate" },
       );
       uploaded += 1;
       uploadedEntries.push(...files);
+
       let print = result.prints[0];
       if (print && images.length) {
         try {
@@ -271,8 +315,8 @@ export async function uploadFoldersAsModels(
           uploadedEntries.push(...images);
         } catch (err) {
           if (err instanceof UnauthorizedError) throw err;
-          console.error("Preview images failed for", folderName, err);
-          failed.push(failureLabel(`${folderName} (images)`, err));
+          console.error("Preview images failed for", group.modelName, err);
+          failed.push(failureLabel(`${group.modelName} (images)`, err));
         }
       }
       if (print) prints.push(print);
@@ -281,17 +325,18 @@ export async function uploadFoldersAsModels(
         onUnauthorized?.();
         return { uploaded, failed, uploadedEntries, prints };
       }
-      console.error("Upload failed for", folderName, err);
-      failed.push(failureLabel(folderName, err));
+      console.error("Upload failed for", group.modelName, err);
+      failed.push(failureLabel(group.modelName, err));
     }
   }
 
-  if (rest.length) {
-    const result = await uploadEach(rest, resolveCategory, onUnauthorized);
+  if (rootLevelEntries.length) {
+    const result = await uploadEach(rootLevelEntries, resolveCategory, onUnauthorized);
     uploaded += result.uploaded;
     failed.push(...result.failed);
     uploadedEntries.push(...result.uploadedEntries);
     prints.push(...result.prints);
   }
+
   return { uploaded, failed, uploadedEntries, prints };
 }
