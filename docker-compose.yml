@@ -7,7 +7,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-thingport}
       - POSTGRES_DB=${POSTGRES_DB:-thingport}
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - thingport_db:/var/lib/postgresql/data
     networks:
       - app-net
     healthcheck:
@@ -52,7 +52,7 @@ services:
       flaresolverr:
         condition: service_started
     volumes:
-      - ./data/storage:/app/storage
+      - thingport_storage:/app/storage
       # Optional consume folder: files and folders dropped in it are imported automatically
       # (Administration -> Settings -> Consume Folder). Uncomment and point it at a host folder.
       # - ./data/consume:/app/consume
@@ -70,6 +70,15 @@ services:
       - backend
     networks:
       - app-net
+
+volumes:
+  thingport_storage:
+    external: true
+    name: thingport_thingport_storage
+
+  thingport_db:
+    external: true
+    name: thingport_thingport_db
 
 networks:
   app-net:
