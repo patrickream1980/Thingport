@@ -21,7 +21,6 @@ import { dividerBorderColor } from "../../theme";
 import { MODEL_EXTS } from "../../constants/fileTypes";
 import { extOf } from "../../utils/fileExtensions";
 import { renderPreviewContent } from "../../components/media/renderPreviewContent";
-import { ModelSnapshot } from "../../components/media/ModelViewer/ModelSnapshot";
 import { usePageHeader } from "../../components/Layout/PageHeaderContext";
 import { useSmartBack } from "../../components/Layout/NavigationHistoryContext";
 import Model3DPreviewModal from "./Model3DPreviewModal";
@@ -45,7 +44,7 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
   const [print, setPrint] = useState<Print | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [activePlateIndex, setActivePlateIndex] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewPlateId, setPreviewPlateId] = useState<string | null>(null);
 
@@ -79,7 +78,7 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
         const data = await printsApi.get(printId);
         if (cancelled) return;
         setPrint(data);
-        setActiveImageIndex(0);
+        setActivePlateIndex(0);
       } catch (err) {
         if (cancelled) return;
         if (err instanceof UnauthorizedError) {
@@ -113,16 +112,12 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
     );
   }
 
-  const images = print.preview_images.toSorted((a, b) => a.position - b.position);
-  const hasImages = images.length > 0;
-  const activeImage = images[activeImageIndex] || images[0];
-  const firstPlate = print.plates[0];
-  const canPreview3d = Boolean(firstPlate) && MODEL_EXTS.has(extOf(firstPlate?.filename || ""));
-  // With no preview image yet, show the live 3D view and generate a snapshot in the background.
-  const needsGeneratedPreview = !hasImages && Boolean(firstPlate) && MODEL_EXTS.has(extOf(firstPlate?.filename || ""));
+  const plates = print.plates.toSorted((a, b) => a.position - b.position);
+  const activePlate = plates[activePlateIndex] || plates[0];
+  const canPreview3d = Boolean(activePlate) && MODEL_EXTS.has(extOf(activePlate?.filename || ""));
 
-  const goPrevImage = () => setActiveImageIndex((i) => (i - 1 + images.length) % images.length);
-  const goNextImage = () => setActiveImageIndex((i) => (i + 1) % images.length);
+  const goPrevFile = () => setActivePlateIndex((i) => (i - 1 + plates.length) % plates.length);
+  const goNextFile = () => setActivePlateIndex((i) => (i + 1) % plates.length);
 
   return (
     <Box sx={{ maxWidth: "1390px", mx: "auto" }}>
@@ -149,52 +144,13 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
               bgcolor: "background.paper",
             }}
           >
-            {hasImages ? (
-              <>
-                {/* A blurred, edge-to-edge crop of the same image behind the sharp contained one --
-                    the common "photo viewer" backdrop that fills the letterboxed bars around any
-                    image whose aspect ratio doesn't match this box's 16:10, instead of showing flat
-                    background color. scale(1.15) pushes the blur's own soft edge outside the box
-                    so no unblurred fringe peeks in. */}
-                <Box
-                  component="img"
-                  src={printsApi.fileUrl(activeImage.url)}
-                  alt=""
-                  aria-hidden="true"
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    maxWidth: "100%",
-                    objectFit: "cover",
-                    filter: "blur(30px)",
-                    transform: "scale(1.15)",
-                  }}
-                />
-                <Box
-                  component="img"
-                  src={printsApi.fileUrl(activeImage.url)}
-                  alt={print.title || print.name}
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    maxWidth: "100%",
-                    objectFit: "contain",
-                  }}
-                />
-              </>
-            ) : (
-              firstPlate && renderPreviewContent(print, "modal", theme, t, "automatic", firstPlate)
-            )}
+            {activePlate && renderPreviewContent(print, "modal", theme, t, "on-demand", activePlate)}
 
-            {images.length > 1 && (
+            {plates.length > 1 && (
               <>
                 <IconButton
-                  onClick={goPrevImage}
-                  aria-label={t("models:detail.previousImage") ?? undefined}
+                  onClick={goPrevFile}
+                  aria-label="Previous file"
                   sx={{
                     position: "absolute",
                     left: 8,
@@ -208,8 +164,8 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
                   <ChevronLeftIcon />
                 </IconButton>
                 <IconButton
-                  onClick={goNextImage}
-                  aria-label={t("models:detail.nextImage") ?? undefined}
+                  onClick={goNextFile}
+                  aria-label="Next file"
                   sx={{
                     position: "absolute",
                     right: 8,
@@ -225,13 +181,35 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
               </>
             )}
 
-            {canPreview3d && (
+            {activePlate && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 12,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: 1.5,
+                  bgcolor: "rgba(0, 0, 0, 0.55)",
+                  color: "#fff",
+                  maxWidth: "70%",
+                }}
+              >
+                <Typography variant="caption" noWrap sx={{ display: "block" }}>
+                  {plates.length > 1 ? `File ${activePlateIndex + 1} of ${plates.length} — ` : ""}
+                  {activePlate.filename}
+                </Typography>
+              </Box>
+            )}
+
+            {canPreview3d && activePlate && (
               <Button
                 variant="contained"
                 size="small"
                 startIcon={<ViewInArIcon fontSize="small" />}
                 onClick={() => {
-                  setPreviewPlateId(firstPlate.id);
+                  setPreviewPlateId(activePlate.id);
                   setPreviewOpen(true);
                 }}
                 sx={{
@@ -248,82 +226,38 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
             )}
           </Box>
 
-          {images.length > 1 && (
-            <Stack direction="row" spacing={1} sx={{ mt: 1.5, overflowX: "auto", pb: 0.5 }}>
-              {images.map((image, idx) => (
-                <ButtonBase
-                  key={image.id}
-                  onClick={() => setActiveImageIndex(idx)}
-                  sx={{
-                    width: 84,
-                    height: 64,
-                    borderRadius: 1.5,
-                    overflow: "hidden",
-                    border: "2px solid",
-                    borderColor: idx === activeImageIndex ? "primary.main" : "divider",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={printsApi.fileUrl(image.url)}
-                    alt=""
-                    sx={{ width: "100%", height: "100%", maxWidth: "100%", objectFit: "cover" }}
-                  />
-                </ButtonBase>
-              ))}
-            </Stack>
-          )}
-
-          {needsGeneratedPreview && firstPlate && (
-            <Box sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", opacity: 0 }} aria-hidden="true">
-              <ModelSnapshot
-                url={printsApi.fileUrl(firstPlate.url)}
-                ext={extOf(firstPlate.filename)}
-                plateId={firstPlate.id}
-                theme={theme}
-                mode="automatic"
-              />
-            </Box>
-          )}
-
-          {print.plates.length > 1 && (
+          {plates.length > 1 && (
             <Box sx={{ mt: 1.5 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
-                Files ({print.plates.length}) — scroll horizontally and click a file to preview it
+                Files ({plates.length}) — scroll horizontally or use the arrows above
               </Typography>
               <Stack direction="row" spacing={1} sx={{ overflowX: "auto", pb: 0.75 }}>
-                {print.plates
-                  .toSorted((a, b) => a.position - b.position)
-                  .map((plate) => (
-                    <ButtonBase
-                      key={plate.id}
-                      onClick={() => {
-                        setPreviewPlateId(plate.id);
-                        setPreviewOpen(true);
-                      }}
-                      title={plate.filename}
-                      sx={{
-                        width: 160,
-                        minWidth: 160,
-                        p: 0.75,
-                        border: "1px solid",
-                        borderColor: "divider",
-                        borderRadius: 1.5,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        justifyContent: "flex-start",
-                        textAlign: "left",
-                        bgcolor: "background.paper",
-                      }}
-                    >
-                      <PlateThumbnail plate={plate} />
-                      <Typography variant="caption" noWrap sx={{ minWidth: 0, flex: 1 }}>
-                        {plate.filename}
-                      </Typography>
-                    </ButtonBase>
-                  ))}
+                {plates.map((plate, idx) => (
+                  <ButtonBase
+                    key={plate.id}
+                    onClick={() => setActivePlateIndex(idx)}
+                    title={plate.filename}
+                    sx={{
+                      width: 160,
+                      minWidth: 160,
+                      p: 0.75,
+                      border: "2px solid",
+                      borderColor: idx === activePlateIndex ? "primary.main" : "divider",
+                      borderRadius: 1.5,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      justifyContent: "flex-start",
+                      textAlign: "left",
+                      bgcolor: "background.paper",
+                    }}
+                  >
+                    <PlateThumbnail plate={plate} />
+                    <Typography variant="caption" noWrap sx={{ minWidth: 0, flex: 1 }}>
+                      {plate.filename}
+                    </Typography>
+                  </ButtonBase>
+                ))}
               </Stack>
             </Box>
           )}
