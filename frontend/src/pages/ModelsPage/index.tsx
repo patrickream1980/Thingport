@@ -456,9 +456,13 @@ export default function ModelsPage({
                 borderRadius: 2,
                 bgcolor: "background.paper",
                 boxShadow: 2,
+                width: "100%",
+                maxWidth: "100%",
+                minWidth: 0,
+                overflow: "hidden",
               }}
             >
-              <Box sx={{ overflowX: "auto", overflowY: "visible", pt: 0.75, pb: 0.5 }}>
+              <Box sx={{ width: "100%", maxWidth: "100%", minWidth: 0, overflowX: "auto", pt: 0.75, pb: 0.5 }}>
                 <Stack
                   direction="row"
                   spacing={1}
