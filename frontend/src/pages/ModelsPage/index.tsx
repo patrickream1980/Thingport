@@ -72,8 +72,7 @@ export default function ModelsPage({
   const panelCategories = useMemo(() => categories.filter((c) => c.kind === panelKind), [categories, panelKind]);
   const sortModeParam = searchParams.get("orderBy");
   const searchQuery = (searchParams.get("q") || "").trim();
-  const sortMode: PrintSortMode =
-    sortModeParam === "popular" || sortModeParam === "downloads" ? sortModeParam : "newest";
+  const sortMode: PrintSortMode = sortModeParam === "name" ? "name" : "newest";
 
   const setSortMode = (mode: PrintSortMode) => {
     setSearchParams((prev) => {
