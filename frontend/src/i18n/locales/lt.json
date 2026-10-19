@@ -1383,8 +1383,7 @@
     },
     "sort": {
       "newest": "Naujausi",
-      "popular": "Populiariausi",
-      "downloads": "Atsisiuntimai"
+      "name": "Pavadinimas"
     },
     "card": {
       "unknownAuthor": "Nežinomas",
