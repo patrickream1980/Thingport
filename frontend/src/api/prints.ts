@@ -104,7 +104,7 @@ export type FillGapsResult = {
   remaining: SourceGap[];
 };
 
-export type PrintSortMode = "newest" | "popular" | "downloads";
+export type PrintSortMode = "newest" | "name";
 
 /** Filters combine with AND. */
 export type DownloadZipFilter = {
