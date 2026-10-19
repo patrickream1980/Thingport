@@ -177,11 +177,10 @@ router.post(
   }),
 );
 
-type PrintSortMode = "newest" | "popular" | "downloads";
+type PrintSortMode = "newest" | "name";
 
 function parseSortMode(raw: unknown): PrintSortMode {
-  if (raw === "popular" || raw === "downloads") return raw;
-  return "newest";
+  return raw === "name" ? "name" : "newest";
 }
 
 router.get(
@@ -226,18 +225,20 @@ router.get(
     const recencyField = systemKey === "favorites" ? "favoritedAt" : systemKey === "history" ? "lastViewedAt" : null;
     const sortMode = parseSortMode(req.query.orderBy);
 
-    const sortValue = (p: (typeof prints)[number]): number => {
-      if (sortMode === "popular") return p.viewCount;
-      if (sortMode === "downloads") return p.printCount;
-      if (recencyField) return p[recencyField]?.getTime() ?? 0;
-      return p.createdAt.getTime();
-    };
-
-    const sorted = prints.toSorted((a, b) => {
-      const diff = sortValue(b) - sortValue(a);
-      if (diff !== 0) return diff;
-      return a.id.localeCompare(b.id);
-    });
+    const sorted =
+      sortMode === "name"
+        ? prints.toSorted((a, b) => {
+            const aName = (a.title || a.name).trim();
+            const bName = (b.title || b.name).trim();
+            const diff = aName.localeCompare(bName, undefined, { sensitivity: "base", numeric: true });
+            return diff !== 0 ? diff : a.id.localeCompare(b.id);
+          })
+        : prints.toSorted((a, b) => {
+            const aValue = recencyField ? (a[recencyField]?.getTime() ?? 0) : a.createdAt.getTime();
+            const bValue = recencyField ? (b[recencyField]?.getTime() ?? 0) : b.createdAt.getTime();
+            const diff = bValue - aValue;
+            return diff !== 0 ? diff : a.id.localeCompare(b.id);
+          });
 
     let paged = sorted;
     if (limit !== undefined) {
