@@ -1381,8 +1381,7 @@
     },
     "sort": {
       "newest": "Newest",
-      "popular": "Popular",
-      "downloads": "Downloads"
+      "name": "Name"
     },
     "card": {
       "unknownAuthor": "Unknown",
