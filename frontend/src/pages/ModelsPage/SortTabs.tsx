@@ -3,14 +3,14 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { type PrintSortMode } from "../../api/prints";
 
-const SORT_MODES: PrintSortMode[] = ["newest", "popular", "downloads"];
+const SORT_MODES: PrintSortMode[] = ["newest", "name"];
 
 type Props = {
   value: PrintSortMode;
   onChange: (mode: PrintSortMode) => void;
 };
 
-/** "Popular" sorts by views, "Downloads" by print count. */
+/** Sort models by recency or alphabetically by display name. */
 export default function SortTabs({ value, onChange }: Props) {
   const { t } = useTranslation("models");
   return (
