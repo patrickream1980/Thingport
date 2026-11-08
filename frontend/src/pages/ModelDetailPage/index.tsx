@@ -20,7 +20,6 @@ import { type ResolvedTheme } from "../../constants/settingsOptions";
 import { dividerBorderColor } from "../../theme";
 import { MODEL_EXTS } from "../../constants/fileTypes";
 import { extOf } from "../../utils/fileExtensions";
-import { renderPreviewContent } from "../../components/media/renderPreviewContent";
 import { usePageHeader } from "../../components/Layout/PageHeaderContext";
 import { useSmartBack } from "../../components/Layout/NavigationHistoryContext";
 import Model3DPreviewModal from "./Model3DPreviewModal";
@@ -144,7 +143,26 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
               bgcolor: "background.paper",
             }}
           >
-            {activePlate && renderPreviewContent(print, "modal", theme, t, "on-demand", activePlate)}
+            {activePlate?.thumb_url ? (
+              <Box
+                component="img"
+                src={printsApi.fileUrl(activePlate.thumb_url)}
+                alt={activePlate.filename}
+                sx={{ width: "100%", height: "100%", objectFit: "contain", bgcolor: "action.hover" }}
+              />
+            ) : activePlate ? (
+              <Stack
+                alignItems="center"
+                justifyContent="center"
+                spacing={1}
+                sx={{ width: "100%", height: "100%", bgcolor: "action.hover", color: "text.secondary" }}
+              >
+                <Typography variant="body2">{activePlate.filename}</Typography>
+                <Typography variant="caption">
+                  Use 3D Preview to open this file interactively.
+                </Typography>
+              </Stack>
+            ) : null}
 
             {plates.length > 1 && (
               <>
