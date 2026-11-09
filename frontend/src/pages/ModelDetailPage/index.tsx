@@ -28,6 +28,7 @@ import FavoriteButton from "./FavoriteButton";
 import ModelSidePanel from "./ModelSidePanel";
 import MarkdownDescription from "../../components/MarkdownDescription";
 import PlateThumbnail from "../../components/media/PlateThumbnail";
+import { ModelSnapshot } from "../../components/media/ModelViewer/ModelSnapshot";
 
 type Props = {
   theme: ResolvedTheme;
@@ -143,25 +144,36 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
               bgcolor: "background.paper",
             }}
           >
-            {activePlate?.thumb_url ? (
-              <Box
-                component="img"
-                src={printsApi.fileUrl(activePlate.thumb_url)}
-                alt={activePlate.filename}
-                sx={{ width: "100%", height: "100%", objectFit: "contain", bgcolor: "action.hover" }}
-              />
-            ) : activePlate ? (
-              <Stack
-                alignItems="center"
-                justifyContent="center"
-                spacing={1}
-                sx={{ width: "100%", height: "100%", bgcolor: "action.hover", color: "text.secondary" }}
-              >
-                <Typography variant="body2">{activePlate.filename}</Typography>
-                <Typography variant="caption">
-                  Use 3D Preview to open this file interactively.
-                </Typography>
-              </Stack>
+            {activePlate ? (
+              MODEL_EXTS.has(extOf(activePlate.filename)) ? (
+                <Box sx={{ width: "100%", height: "100%", bgcolor: "action.hover" }}>
+                  <ModelSnapshot
+                    key={activePlate.id}
+                    url={printsApi.fileUrl(activePlate.url)}
+                    ext={extOf(activePlate.filename)}
+                    plateId={activePlate.id}
+                    theme={theme}
+                    mode="on-demand"
+                  />
+                </Box>
+              ) : activePlate.thumb_url ? (
+                <Box
+                  component="img"
+                  src={printsApi.fileUrl(activePlate.thumb_url)}
+                  alt={activePlate.filename}
+                  sx={{ width: "100%", height: "100%", objectFit: "contain", bgcolor: "action.hover" }}
+                />
+              ) : (
+                <Stack
+                  alignItems="center"
+                  justifyContent="center"
+                  spacing={1}
+                  sx={{ width: "100%", height: "100%", bgcolor: "action.hover", color: "text.secondary" }}
+                >
+                  <Typography variant="body2">{activePlate.filename}</Typography>
+                  <Typography variant="caption">No preview available for this file.</Typography>
+                </Stack>
+              )
             ) : null}
 
             {plates.length > 1 && (
@@ -270,7 +282,21 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
                       bgcolor: "background.paper",
                     }}
                   >
-                    <PlateThumbnail plate={plate} />
+                    {MODEL_EXTS.has(extOf(plate.filename)) ? (
+                      <Box sx={{ width: 32, height: 32, flexShrink: 0, borderRadius: 0.75, overflow: "hidden" }}>
+                        <ModelSnapshot
+                          key={plate.id}
+                          url={printsApi.fileUrl(plate.url)}
+                          ext={extOf(plate.filename)}
+                          plateId={plate.id}
+                          theme={theme}
+                          mode="on-demand"
+                          compact
+                        />
+                      </Box>
+                    ) : (
+                      <PlateThumbnail plate={plate} />
+                    )}
                     <Typography variant="caption" noWrap sx={{ minWidth: 0, flex: 1 }}>
                       {plate.filename}
                     </Typography>
