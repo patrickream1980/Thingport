@@ -153,7 +153,7 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
                     ext={extOf(activePlate.filename)}
                     plateId={activePlate.id}
                     theme={theme}
-                    mode="on-demand"
+                    mode="automatic"
                   />
                 </Box>
               ) : activePlate.thumb_url ? (
@@ -290,7 +290,7 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
                           ext={extOf(plate.filename)}
                           plateId={plate.id}
                           theme={theme}
-                          mode="on-demand"
+                          mode={idx === activePlateIndex ? "automatic" : "on-demand"}
                           compact
                         />
                       </Box>
