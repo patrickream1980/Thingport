@@ -45,6 +45,7 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activePlateIndex, setActivePlateIndex] = useState(0);
+  const [showModelPhoto, setShowModelPhoto] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewPlateId, setPreviewPlateId] = useState<string | null>(null);
 
@@ -79,6 +80,7 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
         if (cancelled) return;
         setPrint(data);
         setActivePlateIndex(0);
+        setShowModelPhoto(data.preview_images.length > 0);
       } catch (err) {
         if (cancelled) return;
         if (err instanceof UnauthorizedError) {
@@ -113,11 +115,19 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
   }
 
   const plates = print.plates.toSorted((a, b) => a.position - b.position);
+  const previewImages = print.preview_images.toSorted((a, b) => a.position - b.position);
+  const modelPhoto = previewImages[0];
   const activePlate = plates[activePlateIndex] || plates[0];
-  const canPreview3d = Boolean(activePlate) && MODEL_EXTS.has(extOf(activePlate?.filename || ""));
+  const canPreview3d = !showModelPhoto && Boolean(activePlate) && MODEL_EXTS.has(extOf(activePlate?.filename || ""));
 
-  const goPrevFile = () => setActivePlateIndex((i) => (i - 1 + plates.length) % plates.length);
-  const goNextFile = () => setActivePlateIndex((i) => (i + 1) % plates.length);
+  const goPrevFile = () => {
+    setShowModelPhoto(false);
+    setActivePlateIndex((i) => (i - 1 + plates.length) % plates.length);
+  };
+  const goNextFile = () => {
+    setShowModelPhoto(false);
+    setActivePlateIndex((i) => (i + 1) % plates.length);
+  };
 
   return (
     <Box sx={{ maxWidth: "1390px", mx: "auto" }}>
@@ -144,7 +154,33 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
               bgcolor: "background.paper",
             }}
           >
-            {activePlate ? (
+            {showModelPhoto && modelPhoto ? (
+              <>
+                <Box
+                  component="img"
+                  src={printsApi.fileUrl(modelPhoto.url)}
+                  alt={print.title || print.name}
+                  sx={{ width: "100%", height: "100%", objectFit: "contain", bgcolor: "action.hover" }}
+                />
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: 12,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    px: 1.25,
+                    py: 0.5,
+                    borderRadius: 1.5,
+                    bgcolor: "rgba(0, 0, 0, 0.55)",
+                    color: "#fff",
+                  }}
+                >
+                  <Typography variant="caption" noWrap sx={{ display: "block" }}>
+                    Model photo
+                  </Typography>
+                </Box>
+              </>
+            ) : activePlate ? (
               MODEL_EXTS.has(extOf(activePlate.filename)) ? (
                 <Box sx={{ width: "100%", height: "100%", bgcolor: "action.hover" }}>
                   <ModelSnapshot
@@ -211,7 +247,7 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
               </>
             )}
 
-            {activePlate && (
+            {!showModelPhoto && activePlate && (
               <Box
                 sx={{
                   position: "absolute",
@@ -256,23 +292,56 @@ export default function ModelDetailPage({ theme, onSelectCategory, onUnauthorize
             )}
           </Box>
 
-          {plates.length > 1 && (
+          {(plates.length > 1 || modelPhoto) && (
             <Box sx={{ mt: 1.5 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
-                Files ({plates.length}) — scroll horizontally or use the arrows above
+                {modelPhoto ? "Model photo + " : ""}Files ({plates.length}) — scroll horizontally or use the arrows above
               </Typography>
               <Stack direction="row" spacing={1} sx={{ overflowX: "auto", pb: 0.75 }}>
+                {modelPhoto && (
+                  <ButtonBase
+                    onClick={() => setShowModelPhoto(true)}
+                    title="Model photo"
+                    sx={{
+                      width: 160,
+                      minWidth: 160,
+                      p: 0.75,
+                      border: "2px solid",
+                      borderColor: showModelPhoto ? "primary.main" : "divider",
+                      borderRadius: 1.5,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      justifyContent: "flex-start",
+                      textAlign: "left",
+                      bgcolor: "background.paper",
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={printsApi.fileUrl(modelPhoto.url)}
+                      alt=""
+                      sx={{ width: 32, height: 32, flexShrink: 0, borderRadius: 0.75, objectFit: "cover" }}
+                    />
+                    <Typography variant="caption" noWrap sx={{ minWidth: 0, flex: 1 }}>
+                      Model photo
+                    </Typography>
+                  </ButtonBase>
+                )}
                 {plates.map((plate, idx) => (
                   <ButtonBase
                     key={plate.id}
-                    onClick={() => setActivePlateIndex(idx)}
+                    onClick={() => {
+                      setShowModelPhoto(false);
+                      setActivePlateIndex(idx);
+                    }}
                     title={plate.filename}
                     sx={{
                       width: 160,
                       minWidth: 160,
                       p: 0.75,
                       border: "2px solid",
-                      borderColor: idx === activePlateIndex ? "primary.main" : "divider",
+                      borderColor: !showModelPhoto && idx === activePlateIndex ? "primary.main" : "divider",
                       borderRadius: 1.5,
                       display: "flex",
                       alignItems: "center",
