@@ -77,6 +77,22 @@ export default function ModelSidePanel({ print, onSelectCategory, onUnauthorized
     print.author?.name || print.author?.handle || print.creator || (showViewerAsAuthor ? viewer!.display_name : null);
   const authorAvatarUrl = print.author?.avatar_url || (showViewerAsAuthor ? viewerAvatarUrl : undefined);
 
+  const sourceLabel = (() => {
+    const provider = (print.source_provider || "").toLowerCase();
+    if (provider.includes("makerworld")) return "View on MakerWorld";
+    if (provider.includes("printables")) return "View on Printables";
+    if (provider.includes("thingiverse")) return "View on Thingiverse";
+    try {
+      const host = print.source_url ? new URL(print.source_url).hostname.toLowerCase() : "";
+      if (host.includes("makerworld")) return "View on MakerWorld";
+      if (host.includes("printables")) return "View on Printables";
+      if (host.includes("thingiverse")) return "View on Thingiverse";
+    } catch {
+      // Ignore malformed source URLs and fall back to a generic label.
+    }
+    return "View original model";
+  })();
+
   return (
     <Paper
       variant="outlined"
@@ -236,6 +252,20 @@ export default function ModelSidePanel({ print, onSelectCategory, onUnauthorized
             normalized={normalized}
             matchAnchorWidth
           />
+        )}
+
+        {print.source_url && (
+          <Button
+            component="a"
+            href={print.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="outlined"
+            startIcon={<LaunchIcon fontSize="small" />}
+            fullWidth
+          >
+            {sourceLabel}
+          </Button>
         )}
 
         <Button
